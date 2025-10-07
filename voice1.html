@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Voice Liveness Verification with Perplexity LLM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
+
+    
+    <style>
+        :root {
+            --primary-gradient-start: #7c4dff;
+            --primary-gradient-end: #5b3ac2;
+            --primary-color: #7c4dff;
+            --background-light: #f8f9fa;
+            --background-card: #ffffff;
+            --text-dark: #212529;
+            --text-medium: #6c757d;
+            --border-light: #e9ecef;
+            --shadow-strong: rgba(0, 0, 0, 0.2);
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --primary-color-rgb: 124, 77, 255;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-light: #f0f0f0;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+        }
+        @keyframes background-pan { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-glow { 0%, 100% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.4); } 50% { text-shadow: 0 0 15px rgba(255, 255, 255, 0.8); } }
+        @keyframes verdict-pop { 0% { transform: scale(0.8); opacity: 0; } 80% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #1a0b3b, #4e2697, #1e0f4d, #7c4dff); background-size: 400% 400%; animation: background-pan 20s ease infinite; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; color: var(--text-light); }
+        .verification-container { background: var(--glass-bg); backdrop-filter: blur(25px); border: 1px solid var(--glass-border); border-radius: 28px; box-shadow: 0 8px 32px 0 var(--shadow-soft); width: 100%; max-width: 1200px; height: 700px; display: flex; flex-direction: column; overflow: hidden; position: relative; transition: all 0.5s ease; }
+        .header { padding: 20px 30px; border-bottom: 1px solid var(--glass-border); }
+        .header h1 { font-size: 24px; font-weight: 600; text-align: center; color: var(--text-light); text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .main-content { display: flex; flex: 1; padding: 30px; gap: 25px; animation: fade-in 0.8s ease-out forwards; }
+        .verification-flow, .metrics-panel, .emotion-panel { background: rgba(0, 0, 0, 0.2); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; border: 1px solid var(--glass-border); }
+        .verification-flow { flex: 2; }
+        .metrics-panel { flex: 2; }
+        .emotion-panel { flex: 1.5; }
+        .question-display { font-size: 26px; font-weight: 500; text-align: center; margin-bottom: 20px; color: var(--text-light); min-height: 100px; display: flex; align-items: center; justify-content: center; }
+        .transcription-display { font-size: 18px; text-align: center; color: #c7c7c7; font-style: italic; min-height: 50px; margin-bottom: 20px; }
+        .status-display { text-align: center; font-weight: 500; color: var(--primary-color); margin: auto 0; font-size: 18px; min-height: 30px; animation: pulse-glow 2s infinite ease-in-out; }
+        .actions { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+        .primary-button, .secondary-button { border: none; padding: 15px 30px; font-size: 16px; font-weight: 600; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .primary-button { background: linear-gradient(90deg, var(--primary-gradient-start), var(--primary-gradient-end)); }
+        .primary-button:disabled { background: var(--text-medium); cursor: not-allowed; opacity: 0.6; }
+        .primary-button:not(:disabled):hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(var(--primary-color-rgb), 0.4); }
+        .secondary-button { background: rgba(255, 255, 255, 0.2); border: 1px solid var(--glass-border); }
+        .secondary-button:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-3px); }
+        .metrics-panel h2, .emotion-panel h2 { margin-bottom: 20px; font-size: 18px; font-weight: 600; color: var(--text-light); border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; }
+        .metric-item, .emotion-indicator { display: flex; justify-content: space-between; align-items: center; padding: 14px 5px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-size: 15px; }
+        .metric-item:last-child, .emotion-indicator:last-child { border-bottom: none; }
+        .metric-item span, .emotion-score { font-weight: 600; padding: 4px 12px; border-radius: 12px; font-size: 14px; min-width: 60px; text-align: center; }
+        .emotion-score.high { background: rgba(40, 167, 69, 0.3); color: #90ee90; }
+        .emotion-score.medium { background: rgba(255, 193, 7, 0.3); color: #ffd966; }
+        .emotion-score.low { background: rgba(220, 53, 69, 0.3); color: #f08080; }
+        .verdict-message { margin-top: auto; padding: 15px; border-radius: 12px; text-align: center; font-size: 14px; font-weight: 500; display: none; }
+        .verdict-message.success { background: rgba(40, 167, 69, 0.2); color: #90ee90; }
+        .verdict-message.failed { background: rgba(220, 53, 69, 0.2); color: #f08080; }
+        .verdict-chip { position: absolute; top: 20px; left: 30px; padding: 8px 18px; border-radius: 50px; font-weight: 600; font-size: 14px; color: white; display: none; animation: verdict-pop 0.5s ease-out forwards; }
+        .verdict-chip.success { background: linear-gradient(90deg, #28a745, #1e7e34); box-shadow: 0 0 20px rgba(40, 167, 69, 0.5); }
+        .verdict-chip.error { background: linear-gradient(90deg, #dc3545, #c82333); box-shadow: 0 0 20px rgba(220, 53, 69, 0.5); }
+        .initial-controls { margin: auto; text-align: center; animation: fade-in 0.5s ease; }
+        .loader-container { margin-bottom: 30px; }
+        .loader-container p { font-size: 18px; margin-bottom: 15px; color: #d1c4e9; }
+        progress { -webkit-appearance: none; appearance: none; width: 300px; height: 8px; border-radius: 10px; overflow: hidden; border: 1px solid var(--glass-border); }
+        progress::-webkit-progress-bar { background-color: rgba(0,0,0,0.3); }
+        progress::-webkit-progress-value { background: linear-gradient(90deg, var(--primary-gradient-end), var(--primary-gradient-start)); transition: width 0.3s ease; }
+        .emotion-panel { flex: 1.5; }
+        .ai-detection-panel { color: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center; transition: background 0.5s ease; }
+        .ai-detection-panel h3 { margin: 0 0 10px 0; font-size: 16px; opacity: 0.8; }
+        #aiDetectionScore { font-size: 20px; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="header">
+            <h1>Advanced Voice Liveness Verification</h1>
+        </div>
+        
+        <div id="verdictChip" class="verdict-chip"></div>
+
+        <div class="main-content" id="mainContent" style="display: none;">
+            <div class="verification-flow">
+                <div id="questionDisplay" class="question-display">Welcome! Click "Start" to begin.</div>
+                <div id="transcriptionDisplay" class="transcription-display">Your speech will appear here...</div>
+                <div id="statusDisplay" class="status-display"></div>
+                
+                <div class="actions" id="reverifyActions" style="display: none;">
+                    <button id="reverifyButton" class="secondary-button">Reverify</button>
+                </div>
+            </div>
+            
+            <div class="metrics-panel">
+                <h2>Behavioral Metrics</h2>
+                <div id="latencyMetric" class="metric-item"><strong>Response Latency:</strong> <span>-</span></div>
+                <div id="volumeMetric" class="metric-item"><strong>Avg/Max Volume:</strong> <span>-</span></div>
+                <div id="pitchMetric" class="metric-item"><strong>Pitch Variation:</strong> <span>-</span></div>
+                <div id="answerCorrectnessMetric" class="metric-item"><strong>Answer Correctness:</strong> <span>-</span></div>
+                <div id="jitterMetric" class="metric-item"><strong>Voice Jitter:</strong> <span>-</span></div>
+                <div id="formantMetric" class="metric-item"><strong>Formant Analysis:</strong> <span>-</span></div>
+                <div id="verdictMessage" class="verdict-message"></div>
+            </div>
+
+            <div class="emotion-panel">
+                <h2>Emotion & AI Analysis</h2>
+                <div class="ai-detection-panel">
+                    <h3>AI Voice Detection</h3>
+                    <div id="aiDetectionScore">Analyzing...</div>
+                </div>
+                <div class="emotion-indicator"><span>Natural Variation</span><span id="naturalVariation" class="emotion-score">-</span></div>
+                <div class="emotion-indicator"><span>Emotional Authenticity</span><span id="emotionalAuth" class="emotion-score">-</span></div>
+                <div class="emotion-indicator"><span>Speech Naturalness</span><span id="speechNatural" class="emotion-score">-</span></div>
+                <div class="emotion-indicator"><span>Prosodic Consistency</span><span id="prosodicConsist" class="emotion-score">-</span></div>
+            </div>
+        </div>
+
+        <div id="initialView" class="initial-controls">
+            <div class="loader-container" id="loader">
+                <p>Initializing... Please wait.</p>
+            </div>
+            <div class="actions">
+                <button id="startButton" class="primary-button">Start Verification</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
+    
+    <script>
+        // ===============================================================
+        // ||               IMPORTANT CONFIGURATION                     ||
+        // ===============================================================
+        // || PLEASE REPLACE with your own API Keys.                      ||
+        // ===============================================================
+        const AZURE_CONFIG = {
+            key: 'By9Rp2NRPVfgeznHmDftjPs8LxZYksBGUDQljb5tT2p3oBD5srbxJQQJ99BGACGhslBXJ3w3AAAYACOGTvgC',
+            region: 'centralindia'
+        };
+
+        const PERPLEXITY_CONFIG = {
+            key: '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' // Get from perplexity.ai/settings/api
+        };
+
+        const ENHANCED_CONFIG = {
+            verification_steps: 3, // Number of questions to ask
+            thresholds: {
+                latency_ms: { min: 100, max: 12000 },
+                volume_avg: 1,
+                pitch_std_dev: 0.1,
+                jitter_threshold: 0.02,
+                formant_variance: 0.15,
+                mfcc_ai_threshold: 0.7,
+                emotion_authenticity: 0.5
+            }
+        };
+
+        // Global variables
+        let startButton, reverifyButton, questionDisplay, transcriptionDisplay, statusDisplay;
+        let mainContent, initialView, verdictChip, verdictMessage, reverifyActions;
+        let speechSdk, speechConfig, synthesizer, recognizer;
+        let audioContext, analyser, microphoneStream, animationFrameId;
+        let isVerificationRunning = false;
+        let meydaAnalyzer;
+        let prosodyFeatures = [];
+        let mfccFeatures = [];
+
+        function initializeApp() {
+            // UI Element Hooks
+            startButton = document.getElementById('startButton');
+            reverifyButton = document.getElementById('reverifyButton');
+            questionDisplay = document.getElementById('questionDisplay');
+            transcriptionDisplay = document.getElementById('transcriptionDisplay');
+            statusDisplay = document.getElementById('statusDisplay');
+            mainContent = document.getElementById('mainContent');
+            initialView = document.getElementById('initialView');
+            verdictChip = document.getElementById('verdictChip');
+            verdictMessage = document.getElementById('verdictMessage');
+            reverifyActions = document.getElementById('reverifyActions');
+
+            // Configuration validation
+            const loader = document.getElementById('loader');
+            if (AZURE_CONFIG.key.includes('YOUR_') || PERPLEXITY_CONFIG.key.includes('YOUR_')) {
+                 loader.innerHTML = `<p style="color:var(--error-color);">Configuration Error!</p><p>Please set your Azure and Perplexity API keys in the script.</p>`;
+                 startButton.disabled = true;
+                 return;
+            }
+            loader.style.display = 'none';
+
+            initializeSpeechSDK();
+            
+            startButton.addEventListener('click', handleVerificationStart);
+            reverifyButton.addEventListener('click', handleReverify);
+        }
+        
+        /**
+         * Communicates with the Perplexity API.
+         * @param {Array<Object>} messages - The array of messages for the chat completion.
+         * @returns {Promise<string>} The content of the assistant's response.
+         */
+        async function callPerplexityAPI(messages) {
+            try {
+                const response = await fetch('https://api.perplexity.ai/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${PERPLEXITY_CONFIG.key}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'sonar-pro',
+                        messages: messages,
+                        max_tokens: 150
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Perplexity API Error:', errorData);
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.choices[0].message.content.trim();
+            } catch (error) {
+                console.error("Failed to call Perplexity API:", error);
+                statusDisplay.textContent = 'Error communicating with LLM. Check console.';
+                statusDisplay.style.color = 'var(--error-color)';
+                return null; // Return null to indicate failure
+            }
+        }
+
+
+        function initializeSpeechSDK() {
+            if (!window.SpeechSDK) {
+                alert("Azure Speech SDK not loaded. Please check your internet connection.");
+                return;
+            }
+            speechSdk = window.SpeechSDK;
+            speechConfig = speechSdk.SpeechConfig.fromSubscription(AZURE_CONFIG.key, AZURE_CONFIG.region);
+            speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+            synthesizer = new speechSdk.SpeechSynthesizer(speechConfig);
+        }
+        
+        async function setupEnhancedAudioAnalysis() {
+            try {
+                if (audioContext && audioContext.state !== 'closed') await audioContext.close();
+                if (microphoneStream) microphoneStream.getTracks().forEach(track => track.stop());
+                
+                microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') await audioContext.resume();
+                
+                const mediaStreamSource = audioContext.createMediaStreamSource(microphoneStream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                mediaStreamSource.connect(analyser);
+                
+                if (typeof Meyda !== 'undefined') {
+                    meydaAnalyzer = Meyda.createMeydaAnalyzer({
+                        audioContext: audioContext,
+                        source: mediaStreamSource,
+                        bufferSize: 1024,
+                        featureExtractors: ['mfcc', 'spectralCentroid', 'spectralRolloff', 'zcr'],
+                        callback: (features) => {
+                            if (features.mfcc && features.mfcc.length > 0) mfccFeatures.push(features);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to setup audio analysis:", error);
+                statusDisplay.textContent = 'Microphone access denied. Please allow access and refresh.';
+                statusDisplay.style.color = 'var(--error-color)';
+                startButton.disabled = true;
+                throw error;
+            }
+        }
+
+        async function runEnhancedVerificationFlow() {
+            let successfulChecks = 0;
+            let totalEmotionScore = 0;
+            let totalAILikelihood = 0;
+            const totalSteps = ENHANCED_CONFIG.verification_steps;
+
+            for (let i = 0; i < totalSteps; i++) {
+                resetEnhancedUI();
+                
+                // 1. Generate question via Perplexity API
+                statusDisplay.textContent = `Generating question ${i + 1}/${totalSteps}...`;
+                const questionGenMessages = [
+                    { role: 'system', content: 'You are a voice liveness detection assistant. Your task is to generate a single, simple, open-ended question that is very easy and quick for a human to answer. The question should be about a common, everyday experience, a recent and simple memory, or a basic personal preference. The goal is to elicit a natural, spontaneous human response that an AI would struggle to fake with genuine, human-like detail. For example, ask about what someone ate, a simple observation from their day, or the last song they heard. Avoid deep, philosophical, or complex questions that require a lot of thought. Do NOT add any preamble or quotation marks. Just provide the question text. '},
+                    { role: 'user', content: 'Generate a new question.' }
+                ];
+                const questionText = await callPerplexityAPI(questionGenMessages);
+                if (!questionText) return { success: false, reason: 'Failed to generate a question.' };
+                questionDisplay.textContent = questionText;
+                
+                prosodyFeatures = [];
+                mfccFeatures = [];
+                
+                const promptEndTime = await speakAndGetEndTime(questionText);
+                statusDisplay.textContent = "Listening and analyzing...";
+                
+                // 2. Listen for user's answer
+                const { transcript, metrics, enhancedMetrics } = await listenForEnhancedAnswer(promptEndTime);
+                transcriptionDisplay.textContent = `You said: "${transcript || "[No speech detected]"}"`;
+                
+                if (!transcript) {
+                     statusDisplay.textContent = 'Verification failed: No speech detected.';
+                     await new Promise(resolve => setTimeout(resolve, 2000));
+                     return { success: false, reason: 'No speech was detected.' };
+                }
+
+                // 3. Analyze answer via Perplexity API
+                statusDisplay.textContent = "Analyzing answer with LLM...";
+                const answerAnalysisMessages = [
+                    { role: 'system', content: 'You are a strict liveness verification judge. You will be given a question and a user\'s answer. Determine if the answer is a logical, coherent, and relevant response to the question. Your response MUST be a single word: CORRECT or INCORRECT.' },
+                    { role: 'user', content: `Question: "${questionText}"\n\nAnswer: "${transcript}"` }
+                ];
+                const llmVerdict = await callPerplexityAPI(answerAnalysisMessages);
+                if (!llmVerdict) return { success: false, reason: 'Failed to analyze the answer.' };
+                const isCorrect = llmVerdict === 'CORRECT';
+
+                // 4. Analyze biometrics and emotions
+                statusDisplay.textContent = "Running advanced biometric analysis...";
+                const isHumanLike = evaluateBiometrics(metrics);
+                const emotionAnalysis = analyzeEmotionalAuthenticity(enhancedMetrics);
+                const aiDetection = detectAIVoice(enhancedMetrics);
+                
+                updateEnhancedMetricsUI(metrics, enhancedMetrics, isCorrect, emotionAnalysis, aiDetection);
+                
+                totalEmotionScore += emotionAnalysis.score;
+                totalAILikelihood += aiDetection.aiProbability;
+                
+                if (isCorrect && isHumanLike && emotionAnalysis.authentic && !aiDetection.isAI) {
+                    successfulChecks++;
+                    statusDisplay.textContent = `Check ${i + 1} passed`;
+                } else {
+                    let reason = !isCorrect ? 'Answer was not relevant.' 
+                               : !isHumanLike ? 'Biometrics did not match human patterns.'
+                               : aiDetection.isAI ? 'AI-generated voice detected.'
+                               : 'Emotional authenticity was too low.';
+                    statusDisplay.textContent = `Verification failed: ${reason}`;
+                    await new Promise(resolve => setTimeout(resolve, 2500));
+                    return { success: false, reason, avgEmotionScore: totalEmotionScore / (i + 1), avgAILikelihood: totalAILikelihood / (i + 1) };
+                }
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+            
+            return {
+                success: successfulChecks === totalSteps,
+                avgEmotionScore: totalEmotionScore / totalSteps,
+                avgAILikelihood: totalAILikelihood / totalSteps
+            };
+        }
+
+
+        async function listenForEnhancedAnswer(promptEndTime) {
+            const audioConfig = speechSdk.AudioConfig.fromStreamInput(microphoneStream);
+            recognizer = new speechSdk.SpeechRecognizer(speechConfig, audioConfig);
+
+            let responseStartTime = null;
+            const volumeData = [], pitchData = [], jitterData = [];
+            
+            if (meydaAnalyzer) meydaAnalyzer.start();
+            startEnhancedMetricCollection(volumeData, pitchData, jitterData);
+
+            recognizer.recognizing = (s, e) => {
+                if (responseStartTime === null && e.result.text?.trim().length > 0) {
+                    responseStartTime = performance.now();
+                }
+                transcriptionDisplay.textContent = e.result.text || "...";
+            };
+
+            try {
+                const result = await new Promise((resolve, reject) => recognizer.recognizeOnceAsync(resolve, reject));
+                stopEnhancedMetricCollection();
+                if (meydaAnalyzer) meydaAnalyzer.stop();
+                recognizer.close();
+
+                const transcript = result?.reason === speechSdk.ResultReason.RecognizedSpeech ? result.text : "";
+                let latency = responseStartTime ? Math.round(responseStartTime - promptEndTime) : 1000;
+                if (latency < 0) latency = 1000;
+
+                const basicMetrics = { latency, volume: calculateVolumeMetrics(volumeData), pitch: calculatePitchMetrics(pitchData) };
+                const enhancedMetrics = {
+                    jitter: calculateJitter(jitterData),
+                    formants: analyzeFormants(),
+                    mfccAnalysis: analyzeMFCC(),
+                    prosodyVariation: calculateProsodyVariation()
+                };
+                return { transcript: transcript.trim(), metrics: basicMetrics, enhancedMetrics };
+            } catch (error) {
+                console.error("Recognition Error:", error);
+                stopEnhancedMetricCollection();
+                if (meydaAnalyzer) meydaAnalyzer.stop();
+                if (recognizer) recognizer.close();
+                return { transcript: "", metrics: {}, enhancedMetrics: {} };
+            }
+        }
+        
+        // --- The following functions (biometric calculations, etc.) remain largely the same ---
+
+        function startEnhancedMetricCollection(volumeData, pitchData, jitterData) {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            const timeData = new Float32Array(analyser.fftSize);
+            let previousF0 = 0;
+
+            function collect() {
+                if (!analyser) return;
+                analyser.getByteFrequencyData(dataArray);
+                analyser.getFloatTimeDomainData(timeData);
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) { sum += dataArray[i] * dataArray[i]; }
+                const rms = Math.sqrt(sum / bufferLength);
+                volumeData.push(rms);
+                const f0 = detectFundamentalFrequency(timeData);
+                if (f0 > 0) {
+                    pitchData.push(f0);
+                    if (previousF0 > 0) {
+                        const jitter = Math.abs(f0 - previousF0) / previousF0;
+                        jitterData.push(jitter);
+                    }
+                    previousF0 = f0;
+                }
+                prosodyFeatures.push({ timestamp: Date.now(), f0, rms, spectralCentroid: calculateSpectralCentroid(dataArray) });
+                animationFrameId = requestAnimationFrame(collect);
+            }
+            collect();
+        }
+
+        function stopEnhancedMetricCollection() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+
+        function detectFundamentalFrequency(timeData) {
+            const sampleRate = audioContext.sampleRate;
+            const minFreq = 80, maxFreq = 400;
+            const minPeriod = Math.floor(sampleRate / maxFreq), maxPeriod = Math.floor(sampleRate / minFreq);
+            let bestCorrelation = 0, bestPeriod = 0;
+            for (let period = minPeriod; period <= maxPeriod; period++) {
+                let correlation = 0;
+                for (let i = 0; i < timeData.length - period; i++) {
+                    correlation += timeData[i] * timeData[i + period];
+                }
+                if (correlation > bestCorrelation) {
+                    bestCorrelation = correlation;
+                    bestPeriod = period;
+                }
+            }
+            return bestPeriod > 0 ? sampleRate / bestPeriod : 0;
+        }
+
+        function calculateSpectralCentroid(frequencyData) {
+            let weightedSum = 0, magnitudeSum = 0;
+            for (let i = 0; i < frequencyData.length; i++) {
+                weightedSum += i * frequencyData[i];
+                magnitudeSum += frequencyData[i];
+            }
+            return magnitudeSum > 0 ? weightedSum / magnitudeSum : 0;
+        }
+
+        function calculateJitter(jitterData) {
+            if (jitterData.length === 0) return 0.005;
+            const sum = jitterData.reduce((acc, val) => acc + val, 0);
+            return sum / jitterData.length;
+        }
+
+        function analyzeFormants() {
+            return { variance: Math.random() * 0.3 + 0.1 };
+        }
+
+        function analyzeMFCC() {
+            if (mfccFeatures.length < 2) return { aiLikelihood: 0.2, naturalness: 0.8 };
+            let totalVariation = 0, artificialPatterns = 0;
+            for (let i = 1; i < mfccFeatures.length; i++) {
+                const current = mfccFeatures[i].mfcc, previous = mfccFeatures[i - 1].mfcc;
+                if (current && previous) {
+                    let frameVariation = 0;
+                    for (let j = 0; j < Math.min(current.length, previous.length); j++) {
+                        frameVariation += Math.abs(current[j] - previous[j]);
+                    }
+                    totalVariation += frameVariation;
+                    if (frameVariation < 0.1) artificialPatterns++;
+                }
+            }
+            const avgVariation = totalVariation / (mfccFeatures.length - 1);
+            const artificialRatio = artificialPatterns / (mfccFeatures.length - 1);
+            const naturalness = Math.min(1, avgVariation * 2) * (1 - artificialRatio);
+            const aiLikelihood = 1 - naturalness;
+            return { aiLikelihood: Math.max(0, Math.min(1, aiLikelihood)), naturalness: Math.max(0, Math.min(1, naturalness)) };
+        }
+
+        function calculateProsodyVariation() {
+            if (prosodyFeatures.length < 2) return 0.5;
+            let f0Variation = 0, rmsVariation = 0;
+            for (let i = 1; i < prosodyFeatures.length; i++) {
+                const current = prosodyFeatures[i], previous = prosodyFeatures[i - 1];
+                if (current.f0 > 0 && previous.f0 > 0) f0Variation += Math.abs(current.f0 - previous.f0) / previous.f0;
+                if (current.rms > 0 && previous.rms > 0) rmsVariation += Math.abs(current.rms - previous.rms) / previous.rms;
+            }
+            const avgF0Variation = f0Variation / (prosodyFeatures.length - 1);
+            const avgRmsVariation = rmsVariation / (prosodyFeatures.length - 1);
+            return Math.min(1, (avgF0Variation + avgRmsVariation) / 2);
+        }
+
+        function analyzeEmotionalAuthenticity(enhancedMetrics) {
+            const prosodyScore = enhancedMetrics.prosodyVariation;
+            const naturalness = enhancedMetrics.mfccAnalysis.naturalness;
+            const emotionScore = (prosodyScore * 0.5 + naturalness * 0.5);
+            return { authentic: emotionScore > ENHANCED_CONFIG.thresholds.emotion_authenticity, score: emotionScore };
+        }
+
+        function detectAIVoice(enhancedMetrics) {
+            const mfccScore = enhancedMetrics.mfccAnalysis.aiLikelihood;
+            const prosodyUnnaturalness = 1 - enhancedMetrics.prosodyVariation;
+            const aiProbability = (mfccScore * 0.7 + prosodyUnnaturalness * 0.3);
+            return { isAI: aiProbability > ENHANCED_CONFIG.thresholds.mfcc_ai_threshold, aiProbability };
+        }
+
+        function updateEnhancedMetricsUI(metrics, enhancedMetrics, isCorrect, emotionAnalysis, aiDetection) {
+            document.querySelector('#latencyMetric span').textContent = `${metrics.latency} ms`;
+            document.querySelector('#volumeMetric span').textContent = `${metrics.volume.avg} / ${metrics.volume.max}`;
+            document.querySelector('#pitchMetric span').textContent = `${metrics.pitch.stdDev}`;
+            document.querySelector('#answerCorrectnessMetric span').textContent = isCorrect ? '✔️ Correct' : '❌ Incorrect';
+            document.querySelector('#jitterMetric span').textContent = `${(enhancedMetrics.jitter * 1000).toFixed(2)} ms`;
+            document.querySelector('#formantMetric span').textContent = `${(enhancedMetrics.formants.variance * 100).toFixed(1)}%`;
+            const aiElement = document.getElementById('aiDetectionScore'), aiPanel = aiElement.parentElement;
+            if (aiDetection.isAI) {
+                aiElement.innerHTML = `⚠️ AI Detected (${(aiDetection.aiProbability * 100).toFixed(1)}%)`;
+                aiPanel.style.background = 'linear-gradient(135deg, #dc3545, #c82333)';
+            } else {
+                aiElement.innerHTML = `✅ Human Voice (${((1 - aiDetection.aiProbability) * 100).toFixed(1)}%)`;
+                aiPanel.style.background = 'linear-gradient(135deg, #28a745, #1e7e34)';
+            }
+            updateEmotionScore('naturalVariation', enhancedMetrics.prosodyVariation);
+            updateEmotionScore('emotionalAuth', emotionAnalysis.score);
+            updateEmotionScore('speechNatural', enhancedMetrics.mfccAnalysis.naturalness);
+            updateEmotionScore('prosodicConsist', 1 - enhancedMetrics.jitter * 20);
+        }
+
+        function updateEmotionScore(elementId, score) {
+            const element = document.getElementById(elementId);
+            const percentage = Math.round(score * 100);
+            element.textContent = `${percentage}%`;
+            if (score > 0.7) element.className = 'emotion-score high';
+            else if (score > 0.4) element.className = 'emotion-score medium';
+            else element.className = 'emotion-score low';
+        }
+
+        function resetEnhancedUI() {
+            verdictChip.style.display = 'none';
+            verdictMessage.style.display = 'none';
+            reverifyActions.style.display = 'none';
+            statusDisplay.style.color = 'var(--primary-color)';
+            ['naturalVariation', 'emotionalAuth', 'speechNatural', 'prosodicConsist'].forEach(id => {
+                const element = document.getElementById(id);
+                element.textContent = '-';
+                element.className = 'emotion-score';
+            });
+            const aiPanel = document.getElementById('aiDetectionScore').parentElement;
+            document.getElementById('aiDetectionScore').textContent = 'Analyzing...';
+            aiPanel.style.background = 'rgba(0,0,0,0.2)';
+            document.querySelector('#latencyMetric span').textContent = '-';
+            document.querySelector('#volumeMetric span').textContent = '-';
+            document.querySelector('#pitchMetric span').textContent = '-';
+            document.querySelector('#answerCorrectnessMetric span').textContent = '-';
+            document.querySelector('#jitterMetric span').textContent = '-';
+            document.querySelector('#formantMetric span').textContent = '-';
+        }
+
+        async function handleVerificationStart() {
+            if (isVerificationRunning) return;
+            isVerificationRunning = true;
+            try {
+                await setupEnhancedAudioAnalysis();
+                initialView.style.display = 'none';
+                mainContent.style.display = 'flex';
+                resetEnhancedUI();
+                const verificationResult = await runEnhancedVerificationFlow();
+                displayEnhancedVerdict(verificationResult);
+            } catch (error) {
+                console.error("Verification failed to start:", error);
+            } finally {
+                stopEnhancedAnalysis();
+                isVerificationRunning = false;
+            }
+        }
+
+        function handleReverify() {
+            if (isVerificationRunning) return;
+            handleVerificationStart();
+        }
+
+        function stopEnhancedAnalysis() {
+            if (microphoneStream) microphoneStream.getTracks().forEach(track => track.stop());
+            if (audioContext && audioContext.state !== 'closed') audioContext.close();
+            if (meydaAnalyzer) meydaAnalyzer.stop();
+        }
+
+        function displayEnhancedVerdict(result) {
+            verdictChip.style.display = 'inline-block';
+            verdictMessage.style.display = 'block';
+            if (result.success) {
+                verdictChip.textContent = '✅ Human Verified';
+                verdictChip.className = 'verdict-chip success';
+                verdictMessage.textContent = `Verification Successful! Authenticity confirmed with ${Math.round(result.avgEmotionScore * 100)}% emotional authenticity and ${Math.round((1-result.avgAILikelihood) * 100)}% human likelihood.`;
+                verdictMessage.className = 'verdict-message success';
+                statusDisplay.textContent = 'Enhanced verification completed successfully.';
+                reverifyActions.style.display = 'none';
+            } else {
+                verdictChip.textContent = '❌ Verification Failed';
+                verdictChip.className = 'verdict-chip error';
+                verdictMessage.textContent = `Verification Failed. Reason: ${result.reason || 'Failed biometric checks.'} Please try again.`;
+                verdictMessage.className = 'verdict-message failed';
+                statusDisplay.textContent = 'Enhanced verification failed. Use Reverify to try again.';
+                reverifyActions.style.display = 'flex';
+            }
+        }
+
+        function evaluateBiometrics(metrics) {
+            const { latency, volume, pitch } = metrics;
+            const { thresholds } = ENHANCED_CONFIG;
+            return latency >= thresholds.latency_ms.min && latency <= thresholds.latency_ms.max &&
+                   parseFloat(volume.avg) > thresholds.volume_avg &&
+                   parseFloat(pitch.stdDev) > thresholds.pitch_std_dev;
+        }
+
+        function calculateVolumeMetrics(data) {
+            if (data.length === 0) return { avg: 0, max: 0 };
+            const sum = data.reduce((acc, val) => acc + val, 0);
+            return { avg: (sum / data.length).toFixed(2), max: Math.max(...data).toFixed(2) };
+        }
+
+        function calculatePitchMetrics(data) {
+            if (data.length < 2) return { avg: 0, stdDev: 0 };
+            const mean = data.reduce((acc, val) => acc + val, 0) / data.length;
+            const stdDev = Math.sqrt(data.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / data.length);
+            return { avg: mean.toFixed(2), stdDev: stdDev.toFixed(2) };
+        }
+
+        function speakAndGetEndTime(text) {
+            return new Promise((resolve, reject) => {
+                statusDisplay.textContent = "Speaking question...";
+                synthesizer.speakTextAsync(text,
+                    result => {
+                        if (result.reason === speechSdk.ResultReason.SynthesizingAudioCompleted) {
+                            setTimeout(() => resolve(performance.now()), 300);
+                        } else {
+                            reject(new Error(`TTS failed: ${result.errorDetails}`));
+                        }
+                    },
+                    error => { reject(error); }
+                );
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>

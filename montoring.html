@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank of Baroda - Identity Rhythm Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            --bob-orange: #e87028;
+            --bob-dark-blue: #0a2351;
+            --bob-background: #f8f9fa;
+            --bob-border: #dee2e6;
+        }
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+        .card {
+            background-color: #f49254;
+            border: 1px solid var(--bob-border);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .pulse-red {
+            box-shadow: 0 0 0 0 rgba(220, 38, 38, 1);
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+        .pulse-orange {
+            box-shadow: 0 0 0 0 rgba(232, 112, 40, 1);
+            animation: pulse-orange 2s infinite;
+        }
+        @keyframes pulse-orange {
+            0% { box-shadow: 0 0 0 0 rgba(232, 112, 40, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(232, 112, 40, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(232, 112, 40, 0); }
+        }
+        .view-toggle-btn {
+            border-bottom: 3px solid transparent;
+            color: #4b5563; /* text-gray-600 */
+            padding-bottom: 4px;
+        }
+        .view-toggle-btn.active {
+            border-bottom-color: var(--bob-orange);
+            color: var(--bob-orange);
+            font-weight: 600;
+        }
+        .hidden {
+            display: none;
+        }
+        
+        /* Video KYC Styles */
+        #kyc-webcam {
+            width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            transform: scaleX(-1); /* Mirror effect */
+        }
+        .kyc-status-dot {
+            height: 12px;
+            width: 12px;
+            border-radius: 9999px;
+            display: inline-block;
+            animation: kyc-pulse 2s infinite;
+        }
+        .kyc-status-dot.success { background-color: #4ade80; animation: none; }
+        .kyc-status-dot.fail { background-color: #f87171; animation: none; }
+        .kyc-status-dot.pending { background-color: #fbbf24; }
+        .kyc-status-dot.recording { background-color: #ef4444; }
+        
+        @keyframes kyc-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .kyc-loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--bob-orange);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: kyc-spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes kyc-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom Tailwind Config */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bob-orange': '#e87028',
+                        'bob-dark-blue': '#0a2351',
+                    }
+                }
+            }
+        }
+    </style>
+</head>
+<body class="bg-bob-background text-slate-800">
+    <!-- New Header based on screenshot -->
+    <div class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <img class="h-8" src="https://www.bankofbaroda.in/-/media/project/bob/countrywebsites/india/home/bob-logo.svg" alt="Bank of Baroda">
+                </div>
+                <!-- Right side items -->
+                <div class="flex items-center space-x-6">
+                    <button id="user-view-btn" class="view-toggle-btn active text-sm font-medium">User Verification View</button>
+                    <button id="admin-view-btn" class="view-toggle-btn text-sm font-medium">Bank Admin View</button>
+                    <div class="border-l border-gray-300 h-6"></div>
+                    <a href="#" class="text-sm font-medium text-gray-700 hover:text-bob-orange flex items-center">
+                        <svg class="w-5 h-5 mr-1 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </svg>
+                        Locate Us
+                    </a>
+                    <button style="background-image: linear-gradient(to right, #f26522, #e14123);" class="text-white px-8 py-2 rounded-md font-semibold text-sm">Login</button>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-gray-200">
+            <nav class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-12">
+                     <div class="flex space-x-8 text-sm font-medium text-gray-700">
+                         <a href="#" class="hover:text-bob-orange">Accounts</a>
+                         <a href="#" class="hover:text-bob-orange">Loans</a>
+                         <a href="#" class="hover:text-bob-orange">Investments</a>
+                         <a href="#" class="hover:text-bob-orange">Insurance</a>
+                         <a href="#" class="hover:text-bob-orange">Digital Products</a>
+                         <a href="#" class="hover:text-bob-orange">Other Services</a>
+                     </div>
+                     <div>
+                         <a href="#" class="text-sm font-semibold text-bob-orange">Offers</a>
+                     </div>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <div id="app" class="p-4 md:p-8">
+
+        <!-- Bank Admin View -->
+        <div id="admin-view" class="hidden">
+            <!-- Main Content: User List -->
+            <main id="user-list-view">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="user-cards-container">
+                    <!-- User cards will be injected here -->
+                </div>
+            </main>
+
+            <!-- Main Content: User Detail View (Initially Hidden) -->
+            <div id="user-detail-view" class="hidden">
+                <button id="back-button" class="flex items-center mb-6 text-bob-orange hover:text-orange-700 transition-colors font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Back to All Users
+                </button>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left Column -->
+                    <div class="lg:col-span-1 flex flex-col gap-6">
+                        <!-- User Info, Biometrics, Session Context -->
+                        <div class="card p-6">
+                            <div class="flex items-center space-x-4">
+                                <img id="user-avatar" class="w-16 h-16 rounded-full border-2 border-gray-300" src="" alt="User Avatar">
+                                <div>
+                                    <h2 id="user-name" class="text-2xl font-bold text-bob-dark-blue"></h2>
+                                    <p id="user-email" class="text-slate-500"></p>
+                                </div>
+                            </div>
+                            <div id="risk-level-badge" class="mt-4 text-center font-bold py-2 px-4 rounded-lg text-sm"></div>
+                            <div class="mt-4 flex justify-around gap-4">
+                                <button id="trigger-verification-btn" class="w-full bg-bob-orange hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Trigger Verification</button>
+                                <button class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Lock Account</button>
+                            </div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-lg font-semibold text-bob-dark-blue mb-4">Behavioral Biometrics</h3>
+                            <div id="biometrics-container" class="space-y-4"></div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-lg font-semibold text-bob-dark-blue mb-4">Last Session Context</h3>
+                            <div id="session-context-container" class="text-sm space-y-2 text-slate-600"></div>
+                        </div>
+                    </div>
+                    <!-- Right Column -->
+                    <div class="lg:col-span-2 flex flex-col gap-6">
+                        <div class="card p-6">
+                            <h3 class="text-lg font-semibold text-bob-dark-blue mb-4">Identity Rhythm</h3>
+                            <div class="chart-container"><canvas id="identityRhythmChart"></canvas></div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-lg font-semibold text-bob-dark-blue mb-4">Recent Activity</h3>
+                            <div class="overflow-auto max-h-[300px] pr-2">
+                                <table class="w-full text-sm text-left"><thead class="text-xs text-slate-500 uppercase"><tr><th scope="col" class="py-2">Event</th><th scope="col" class="py-2">System</th><th scope="col" class="py-2">Time</th><th scope="col" class="py-2">Status</th></tr></thead><tbody id="activity-log-body"></tbody></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Verification View -->
+        <div id="user-view">
+             <!-- Authentication Method Selection -->
+            <div id="auth-selection-view" class="max-w-lg mx-auto text-center">
+                <div class="card p-8">
+                     <h2 class="text-2xl font-bold text-bob-dark-blue mb-2">Choose Verification Method</h2>
+                     <p class="text-slate-500 mb-8">Please select how you'd like to verify your identity.</p>
+                     <div class="space-y-4">
+                         <button id="start-video-kyc-btn" class="w-full bg-bob-orange hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center text-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                             Start Video KYC
+                         </button>
+                         <button id="start-behavioral-auth-btn" class="w-full bg-bob-dark-blue hover:bg-opacity-90 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center text-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
+                            Start User Behavior Authentication
+                         </button>
+                     </div>
+                </div>
+            </div>
+
+            <!-- Behavioral Authentication View -->
+            <div id="behavioral-auth-view" class="hidden">
+                <button class="back-to-selection flex items-center mb-6 text-bob-orange hover:text-orange-700 transition-colors font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Back to Selection
+                </button>
+                <div class="max-w-md mx-auto text-center">
+                    <div class="card p-8">
+                        <div class="flex justify-center mb-4">
+                            <svg class="text-bob-orange w-16 h-16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-bob-dark-blue mb-2">Identity Verification Required</h2>
+                        <p class="text-slate-500 mb-6">For your security, please complete the following challenges to verify your identity.</p>
+                        
+                        <div class="mb-6 p-4 bg-gray-100 rounded-lg border border-gray-200 text-left">
+                            <p class="text-sm text-slate-500">Verifying User:</p>
+                            <p class="text-lg font-bold text-bob-dark-blue" id="verification-user-name"></p>
+                            <p class="text-sm text-slate-500" id="verification-user-email"></p>
+                        </div>
+
+                        <div class="text-left space-y-6">
+                            <!-- Typing Cadence Test -->
+                            <div>
+                                <label for="typing-test" class="block text-sm font-medium text-slate-600 mb-2">1. Type the phrase below:</label>
+                                <p class="text-sm text-slate-600 p-2 bg-gray-100 rounded-md mb-2 select-none">the quick brown fox</p>
+                                <input type="text" id="typing-test-input" placeholder="Start typing here..." class="w-full bg-white border border-gray-300 rounded-md p-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-bob-orange transition-all">
+                            </div>
+                            <!-- Mouse Dynamics Test -->
+                            <div>
+                                 <label class="block text-sm font-medium text-slate-600 mb-2">2. Move your mouse naturally in the box:</label>
+                                 <canvas id="mouseTrackingCanvas" class="bg-gray-50 border border-gray-300 w-full rounded-md" height="120"></canvas>
+                            </div>
+                            <!-- Device Trust Test -->
+                            <div>
+                                 <button id="verify-device-btn" class="w-full bg-bob-orange hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
+                                    <span id="verify-device-text">3. Verify Device Fingerprint</span>
+                                    <svg id="verify-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="verification-results" class="mt-6 text-left p-4 bg-gray-100 rounded-lg border border-gray-200">
+                            <h4 class="font-semibold text-bob-dark-blue mb-2">Verification Status:</h4>
+                            <div class="space-y-2">
+                                 <div class="flex justify-between items-center text-sm"><span class="text-slate-600">Typing Cadence Match:</span><span id="typing-result" class="font-semibold text-gray-400">Pending</span></div>
+                                 <div class="flex justify-between items-center text-sm"><span class="text-slate-600">Mouse Dynamics Match:</span><span id="mouse-result" class="font-semibold text-gray-400">Pending</span></div>
+                                 <div class="flex justify-between items-center text-sm"><span class="text-slate-600">Device Trust Score:</span><span id="device-result" class="font-semibold text-gray-400">Pending</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Video KYC View -->
+            <div id="video-kyc-view" class="hidden">
+                 <button class="back-to-selection flex items-center mb-6 text-bob-orange hover:text-orange-700 transition-colors font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Back to Selection
+                </button>
+                <div class="w-full max-w-2xl mx-auto p-4 md:p-8 card">
+                    <h1 class="text-3xl font-bold text-center mb-2 text-bob-dark-blue">Video KYC Liveness Check</h1>
+                    <p class="text-slate-500 text-center mb-6">Powered by Gemini API</p>
+
+                    <div class="bg-gray-200 rounded-lg mb-6 overflow-hidden">
+                        <video id="kyc-webcam" autoplay muted playsinline></video>
+                    </div>
+
+                    <div id="kyc-controls" class="text-center space-y-4">
+                        <button id="kyc-startButton" class="bg-bob-dark-blue hover:bg-opacity-90 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all duration-300 w-full md:w-auto">
+                            Start Verification
+                        </button>
+                        <button id="kyc-recordButton" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all duration-300 w-full md:w-auto">
+                            Start Recording
+                        </button>
+                    </div>
+
+                    <div id="kyc-challenge-ui" class="hidden mt-6 text-center">
+                        <h2 class="text-xl font-semibold mb-2 text-bob-dark-blue">Your Challenge:</h2>
+                        <p id="kyc-instruction" class="text-2xl font-bold text-bob-orange bg-orange-50 p-4 rounded-lg"></p>
+                        <div id="kyc-statusContainer" class="mt-4 p-4 bg-gray-100 rounded-lg">
+                            <div class="flex items-center justify-center space-x-3">
+                                <span id="kyc-statusDot" class="kyc-status-dot pending"></span>
+                                <span id="kyc-statusText" class="text-lg font-medium text-slate-700">Awaiting user action...</span>
+                            </div>
+                        </div>
+                        <div id="kyc-loader" class="hidden kyc-loader"></div>
+                    </div>
+
+                    <div id="kyc-result" class="hidden mt-6 text-center">
+                         <div id="kyc-successMessage" class="hidden p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <h2 class="text-2xl font-bold text-green-800">✅ Verification Successful!</h2>
+                            <p class="text-green-600 mt-1">You appear to be a live user performing the action.</p>
+                        </div>
+                         <div id="kyc-failureMessage" class="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <h2 class="text-2xl font-bold text-red-800">❌ Verification Failed</h2>
+                            <p id="kyc-failureReason" class="text-red-600 mt-1">Please try again and follow the instructions carefully.</p>
+                            <button id="kyc-retryButton" class="mt-4 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-all">Retry</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- DATA SIMULATION ---
+const mockUsersData = [
+    {
+        id: 1, name: 'Alice Johnson', email: 'alice.j@example.com', avatar: 'https://placehold.co/128x128/7F9CF5/EBF4FF?text=AJ', risk: 'Low',
+        baseline: { typingSpeed: 110, mouseSmoothness: 85, trustedDevice: { userAgent: "Mozilla/5.0", screenWidth: 1920 } },
+        events: [
+            { time: '08:05', type: 'Login', system: 'Cloud (Azure AD)', status: 'Success', value: 10, behavioral: { typing: 92, mouse: 88, device: 95 } },
+            { time: '08:06', type: 'Access SharePoint', system: 'Cloud (Azure AD)', status: 'Success', value: 8 },
+            { time: '09:15', type: 'Access DB', system: 'On-Prem (AD)', status: 'Success', value: 9 },
+            { time: '11:30', type: 'Login', system: 'Cloud (AWS)', status: 'Success', value: 10, behavioral: { typing: 94, mouse: 91, device: 96 } },
+            { time: '14:00', type: 'File Upload', system: 'On-Prem (FileServer)', status: 'Success', value: 7 },
+        ],
+        lastSession: { ip: '72.16.254.1', location: 'New York, USA', device: 'Corporate Laptop' }
+    },
+    {
+        id: 2, name: 'Bob Williams', email: 'bob.w@example.com', avatar: 'https://placehold.co/128x128/FBBF24/422006?text=BW', risk: 'High',
+        baseline: { typingSpeed: 150, mouseSmoothness: 70, trustedDevice: { userAgent: "Mozilla/5.0", screenWidth: 1440 } },
+        events: [
+            { time: '07:30', type: 'Login', system: 'On-Prem (AD)', status: 'Success', value: 10, behavioral: { typing: 85, mouse: 82, device: 90 } },
+            { time: '09:00', type: 'Access Payroll', system: 'On-Prem (AD)', status: 'Success', value: 9 },
+            { time: '09:05', type: 'Login', system: 'Cloud (Azure AD)', status: 'Success', value: 10, behavioral: { typing: 88, mouse: 85, device: 91 } },
+            { time: '10:45', type: 'Failed Login', system: 'Cloud (Azure AD)', status: 'Anomaly', value: 18, behavioral: { typing: 32, mouse: 45, device: 25 } },
+            { time: '10:46', type: 'Login', system: 'Cloud (Azure AD)', status: 'Success', value: 10, behavioral: { typing: 65, mouse: 72, device: 25 } },
+            { time: '11:15', type: 'Privilege Escalation', system: 'On-Prem (AD)', status: 'Anomaly', value: 25 },
+        ],
+        lastSession: { ip: '103.27.100.58', location: 'Unknown', device: 'Personal Android (Unmanaged)' }
+    },
+    {
+        id: 3, name: 'Charlie Brown', email: 'charlie.b@example.com', avatar: 'https://placehold.co/128x128/A78BFA/1E1B4B?text=CB', risk: 'Medium',
+        baseline: { typingSpeed: 95, mouseSmoothness: 92, trustedDevice: { userAgent: "Mozilla/5.0", screenWidth: 2560 } },
+        events: [
+            { time: '09:02', type: 'Login', system: 'Cloud (Azure AD)', status: 'Success', value: 10, behavioral: { typing: 91, mouse: 93, device: 94 } },
+            { time: '13:00', type: 'Login', system: 'On-Prem (AD)', status: 'Success', value: 10, behavioral: { typing: 89, mouse: 90, device: 92 } },
+            { time: '13:05', type: 'Access Sensitive File', system: 'On-Prem (FileServer)', status: 'Success', value: 12 },
+            { time: '15:20', type: 'Login from new IP', system: 'Cloud (AWS)', status: 'Anomaly', value: 15, behavioral: { typing: 85, mouse: 81, device: 88 } },
+        ],
+        lastSession: { ip: '201.18.34.11', location: 'Toronto, Canada', device: 'Corporate Laptop' }
+    },
+     {
+        id: 4, name: 'Diana Prince', email: 'diana.p@example.com', avatar: 'https://placehold.co/128x128/EC4899/500724?text=DP', risk: 'Low',
+        baseline: { typingSpeed: 125, mouseSmoothness: 88, trustedDevice: { userAgent: "Mozilla/5.0", screenWidth: 1920 } },
+        events: [
+            { time: '08:30', type: 'Login', system: 'On-Prem (AD)', status: 'Success', value: 10, behavioral: { typing: 95, mouse: 96, device: 98 } },
+            { time: '08:32', type: 'Access HR Portal', system: 'On-Prem (AD)', status: 'Success', value: 8 },
+            { time: '10:00', type: 'Login', system: 'Cloud (Salesforce)', status: 'Success', value: 10, behavioral: { typing: 93, mouse: 94, device: 97 } },
+            { time: '12:15', type: 'Update Record', system: 'Cloud (Salesforce)', status: 'Success', value: 7 },
+        ],
+        lastSession: { ip: '192.168.1.10', location: 'Office Network', device: 'Corporate Desktop' }
+    },
+    {
+        id: 5, name: 'Ayush Dixit', email: 'ayush.d@example.com', avatar: 'https://placehold.co/128x128/34D399/047857?text=AD', risk: 'Medium',
+        baseline: { typingSpeed: 130, mouseSmoothness: 80, trustedDevice: { userAgent: "Mozilla/5.0", screenWidth: 1536 } },
+        events: [
+            { time: '09:30', type: 'Login', system: 'Cloud (Azure AD)', status: 'Success', value: 10, behavioral: { typing: 88, mouse: 85, device: 91 } },
+            { time: '10:15', type: 'File Download', system: 'On-Prem (FileServer)', status: 'Success', value: 9 },
+            { time: '11:00', type: 'Access VPN', system: 'On-Prem (AD)', status: 'Success', value: 12 },
+            { time: '11:05', type: 'Unusual Activity', system: 'Cloud (AWS)', status: 'Anomaly', value: 16, behavioral: { typing: 70, mouse: 65, device: 80 } },
+        ],
+        lastSession: { ip: '117.211.90.55', location: 'Kanpur, India', device: 'Personal Laptop' }
+    }
+];
+
+// --- APP STATE & DOM ELEMENTS ---
+let identityRhythmChart = null;
+let currentUser = mockUsersData.find(u => u.name === 'Ayush Dixit'); // Default to Ayush for verification view
+
+// Views
+const adminView = document.getElementById('admin-view');
+const userView = document.getElementById('user-view');
+const authSelectionView = document.getElementById('auth-selection-view');
+const behavioralAuthView = document.getElementById('behavioral-auth-view');
+const videoKycView = document.getElementById('video-kyc-view');
+
+
+// Main Buttons
+const adminViewBtn = document.getElementById('admin-view-btn');
+const userViewBtn = document.getElementById('user-view-btn');
+const startVideoKycBtn = document.getElementById('start-video-kyc-btn');
+const startBehavioralAuthBtn = document.getElementById('start-behavioral-auth-btn');
+
+// Admin View Elements
+const userListView = document.getElementById('user-list-view');
+const userDetailView = document.getElementById('user-detail-view');
+const userCardsContainer = document.getElementById('user-cards-container');
+const backButton = document.getElementById('back-button');
+
+// Behavioral Auth Elements
+const typingTestInput = document.getElementById('typing-test-input');
+const mouseCanvas = document.getElementById('mouseTrackingCanvas');
+const mouseCtx = mouseCanvas.getContext('2d');
+const verifyDeviceBtn = document.getElementById('verify-device-btn');
+let lastKeyTime = Date.now();
+let keyTimings = [];
+let mousePoints = [];
+let lastMousePoint = null;
+
+// --- Video KYC Elements & State ---
+const kycVideo = document.getElementById('kyc-webcam');
+const kycStartButton = document.getElementById('kyc-startButton');
+const kycRecordButton = document.getElementById('kyc-recordButton');
+const kycChallengeUI = document.getElementById('kyc-challenge-ui');
+const kycInstructionText = document.getElementById('kyc-instruction');
+const kycStatusContainer = document.getElementById('kyc-statusContainer');
+const kycStatusDot = document.getElementById('kyc-statusDot');
+const kycStatusText = document.getElementById('kyc-statusText');
+const kycLoader = document.getElementById('kyc-loader');
+const kycResultUI = document.getElementById('kyc-result');
+const kycSuccessMessage = document.getElementById('kyc-successMessage');
+const kycFailureMessage = document.getElementById('kyc-failureMessage');
+const kycFailureReason = document.getElementById('kyc-failureReason');
+const kycRetryButton = document.getElementById('kyc-retryButton');
+
+let kycStream;
+let kycMediaRecorder;
+let kycRecordedChunks = [];
+let kycCurrentChallenge = null;
+let kycIsRecording = false;
+
+const kycChallenges = [
+    'Show your left thumb and point your right index finger to your left eyebrow.',
+    'Raise both of your hands and show your palms.',
+    'Smile widely while pointing your left index finger at your chin.',
+    'Close your right eye and show the back of your left hand.',
+    'Tilt your head to the right and open your mouth.',
+];
+
+
+// --- VIEW MANAGEMENT ---
+function showAdminView() {
+    adminView.classList.remove('hidden');
+    userView.classList.add('hidden');
+    adminViewBtn.classList.add('active');
+    userViewBtn.classList.remove('active');
+    stopKycCamera();
+}
+
+function showUserView() {
+    adminView.classList.add('hidden');
+    userView.classList.remove('hidden');
+    adminViewBtn.classList.remove('active');
+    userViewBtn.classList.add('active');
+    
+    authSelectionView.classList.remove('hidden');
+    behavioralAuthView.classList.add('hidden');
+    videoKycView.classList.add('hidden');
+
+    if (!currentUser || !mockUsersData.some(u => u.id === currentUser.id)) {
+        currentUser = mockUsersData.find(u => u.name === 'Ayush Dixit');
+    }
+    document.getElementById('verification-user-name').textContent = currentUser.name;
+    document.getElementById('verification-user-email').textContent = currentUser.email;
+
+    delete currentUser.liveBehavioral;
+    resetLiveTracking();
+    stopKycCamera();
+}
+
+
+// --- RENDER FUNCTIONS (ADMIN) ---
+function renderUserList() {
+    userCardsContainer.innerHTML = '';
+    mockUsersData.forEach(user => {
+        const riskColorClasses = {
+            'Low': 'bg-green-500 border-green-400',
+            'Medium': 'bg-orange-500 border-orange-400 pulse-orange',
+            'High': 'bg-red-600 border-red-500 pulse-red'
+        };
+        const card = `
+            <div class="card p-5 cursor-pointer transform hover:-translate-y-1 transition-transform" data-user-id="${user.id}">
+                <div class="flex items-center space-x-4">
+                    <img class="w-12 h-12 rounded-full" src="${user.avatar}" alt="${user.name}">
+                    <div><p class="text-lg font-bold text-bob-dark-blue">${user.name}</p><p class="text-sm text-slate-500">${user.email}</p></div>
+                </div>
+                <div class="mt-4 flex justify-between items-center">
+                    <span class="text-sm text-slate-600">Risk Level</span>
+                    <span class="px-3 py-1 text-xs font-semibold text-white rounded-full ${riskColorClasses[user.risk]}">${user.risk}</span>
+                </div>
+            </div>`;
+        userCardsContainer.innerHTML += card;
+    });
+}
+
+function renderUserDetails(userId) {
+    const userToRender = mockUsersData.find(u => u.id === parseInt(userId));
+    if (!userToRender) return;
+    
+    currentUser = userToRender;
+
+    document.getElementById('user-avatar').src = currentUser.avatar;
+    document.getElementById('user-name').textContent = currentUser.name;
+    document.getElementById('user-email').textContent = currentUser.email;
+
+    const riskBadge = document.getElementById('risk-level-badge');
+    const riskColors = {'Low': 'bg-green-100 text-green-800', 'Medium': 'bg-orange-100 text-orange-800', 'High': 'bg-red-100 text-red-800'};
+    riskBadge.className = `mt-4 text-center font-bold py-2 px-4 rounded-lg text-sm ${riskColors[currentUser.risk]}`;
+    riskBadge.textContent = `${currentUser.risk} Risk Detected`;
+
+    const lastBehavioral = currentUser.liveBehavioral || [...currentUser.events].reverse().find(e => e.behavioral)?.behavioral || { typing: 90, mouse: 90, device: 90 };
+    
+    const biometricsContainer = document.getElementById('biometrics-container');
+    biometricsContainer.innerHTML = createMetricHTML('Typing Cadence', 'typing-cadence', lastBehavioral.typing) + 
+                                  createMetricHTML('Mouse Dynamics', 'mouse-dynamics', lastBehavioral.mouse) + 
+                                  createMetricHTML('Device Trust', 'device-trust', lastBehavioral.device);
+
+    const sessionContainer = document.getElementById('session-context-container');
+    sessionContainer.innerHTML = `<p><strong>IP Address:</strong> ${currentUser.lastSession.ip}</p><p><strong>Location:</strong> ${currentUser.lastSession.location}</p><p><strong>Device:</strong> ${currentUser.lastSession.device}</p>`;
+
+    const activityLogBody = document.getElementById('activity-log-body');
+    activityLogBody.innerHTML = '';
+    currentUser.events.slice().reverse().forEach(event => {
+        const statusClass = event.status === 'Anomaly' ? 'text-red-500' : 'text-green-600';
+        const systemClass = event.system.includes('Cloud') ? 'text-blue-600' : 'text-teal-600';
+        activityLogBody.innerHTML += `<tr class="border-b border-gray-200"><td class="py-2">${event.type}</td><td class="py-2 ${systemClass}">${event.system}</td><td class="py-2 text-slate-500">${event.time}</td><td class="py-2 font-semibold ${statusClass}">${event.status}</td></tr>`;
+    });
+
+    createOrUpdateRhythmChart(currentUser.events);
+    userListView.classList.add('hidden');
+    userDetailView.classList.remove('hidden');
+}
+
+function createMetricHTML(name, prefix, value) {
+    let barColor = 'bg-green-500';
+    if (value < 50) barColor = 'bg-red-500';
+    else if (value < 80) barColor = 'bg-orange-500';
+    return `<div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-slate-600">${name}</span>
+                    <span id="admin-${prefix}-value" class="font-semibold text-bob-dark-blue">${value}% Match</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="admin-${prefix}-bar" class="${barColor} h-2.5 rounded-full" style="width: ${value}%"></div>
+                </div>
+            </div>`;
+}
+
+function createOrUpdateRhythmChart(events) { 
+    const ctx = document.getElementById('identityRhythmChart').getContext('2d');
+    const labels = events.map(e => e.time);
+    const onPremData = events.map(e => e.system.includes('On-Prem') ? e.value : null);
+    const cloudData = events.map(e => e.system.includes('Cloud') ? e.value : null);
+    const anomalyData = events.map(e => e.status === 'Anomaly' ? e.value : null);
+    const chartData = {
+        labels: labels,
+        datasets: [
+            { label: 'On-Prem Activity', data: onPremData, borderColor: 'rgb(13, 148, 136)', backgroundColor: 'rgba(13, 148, 136, 0.1)', fill: true, tension: 0.4, spanGaps: true },
+            { label: 'Cloud Activity', data: cloudData, borderColor: 'rgb(37, 99, 235)', backgroundColor: 'rgba(37, 99, 235, 0.1)', fill: true, tension: 0.4, spanGaps: true },
+            { label: 'Anomaly', data: anomalyData, borderColor: 'rgb(220, 38, 38)', backgroundColor: 'rgba(220, 38, 38, 0.5)', pointRadius: 8, pointHoverRadius: 10, type: 'bubble', spanGaps: true }
+        ]
+    };
+    if (identityRhythmChart) { identityRhythmChart.destroy(); }
+    identityRhythmChart = new Chart(ctx, {
+        type: 'line', data: chartData,
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#475569' } }, x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#475569' } } }, plugins: { legend: { position: 'top', labels: { color: '#1e293b' } }, tooltip: { callbacks: { label: (context) => `${events[context.dataIndex].type} in ${events[context.dataIndex].system} (${events[context.dataIndex].status})` } } }, interaction: { mode: 'index', intersect: false } }
+    });
+}
+
+// --- BEHAVIORAL AUTH LOGIC ---
+function updateAdminBiometricDisplay(prefix, value) {
+    const userNameEl = document.getElementById('user-name');
+    if (!userDetailView.classList.contains('hidden') && userNameEl.textContent === currentUser.name) {
+        const valueEl = document.getElementById(`admin-${prefix}-value`);
+        const barEl = document.getElementById(`admin-${prefix}-bar`);
+        if (!valueEl || !barEl) return;
+
+        valueEl.textContent = `${value}% Match`;
+        barEl.style.width = `${value}%`;
+        barEl.classList.remove('bg-green-500', 'bg-orange-500', 'bg-red-500');
+        if (value < 50) barEl.classList.add('bg-red-500');
+        else if (value < 80) barEl.classList.add('bg-orange-500');
+        else barEl.classList.add('bg-green-500');
+    }
+}
+
+function resetLiveTracking() {
+    typingTestInput.value = '';
+    keyTimings = [];
+    mousePoints = [];
+    lastMousePoint = null;
+    mouseCtx.clearRect(0, 0, mouseCanvas.width, mouseCanvas.height);
+    updateVerificationResult('typing', 'Pending', 'gray');
+    updateVerificationResult('mouse', 'Pending', 'gray');
+    updateVerificationResult('device', 'Pending', 'gray');
+}
+
+function handleTyping(e) {
+    const currentTime = Date.now(); const timeDiff = currentTime - lastKeyTime; lastKeyTime = currentTime;
+    if (e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt') { keyTimings.push(timeDiff); }
+    if (keyTimings.length < 2) return;
+    const avgTime = keyTimings.reduce((a, b) => a + b, 0) / keyTimings.length;
+    const deviation = Math.abs(avgTime - currentUser.baseline.typingSpeed) / currentUser.baseline.typingSpeed;
+    let score = Math.max(0, 100 * (1 - deviation * 2));
+    updateVerificationResult('typing', `${Math.round(score)}%`, score);
+}
+
+function handleMouseMove(e) {
+    const rect = mouseCanvas.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+    if (lastMousePoint) {
+        const dx = x - lastMousePoint.x; const dy = y - lastMousePoint.y; const distance = Math.sqrt(dx * dx + dy * dy);
+        mouseCtx.beginPath(); mouseCtx.moveTo(lastMousePoint.x, lastMousePoint.y); mouseCtx.lineTo(x, y);
+        mouseCtx.strokeStyle = `rgba(232, 112, 40, ${Math.min(1, mousePoints.length / 50)})`; mouseCtx.lineWidth = 2; mouseCtx.stroke();
+        mousePoints.push(distance); if (mousePoints.length > 50) mousePoints.shift();
+    }
+    lastMousePoint = { x, y };
+    if (mousePoints.length < 10) return;
+    const avgDistance = mousePoints.reduce((a, b) => a + b, 0) / mousePoints.length;
+    const smoothness = 1 / (1 + (avgDistance / 10)); let score = Math.min(100, Math.round(smoothness * 100 + 10));
+    updateVerificationResult('mouse', `${score}%`, score);
+}
+
+function verifyDevice() {
+    document.getElementById('verify-device-text').classList.add('hidden');
+    document.getElementById('verify-spinner').classList.remove('hidden');
+    
+    setTimeout(() => {
+        const currentUserAgent = "Mozilla/5.0"; const currentScreenWidth = window.screen.width; let score = 0;
+        if (navigator.userAgent.includes(currentUserAgent)) { score += 50; }
+        const widthDeviation = Math.abs(currentScreenWidth - currentUser.baseline.trustedDevice.screenWidth) / currentUser.baseline.trustedDevice.screenWidth;
+        score += Math.max(0, 50 * (1 - widthDeviation));
+        updateVerificationResult('device', `${Math.round(score)}%`, score);
+        document.getElementById('verify-device-text').classList.remove('hidden');
+        document.getElementById('verify-spinner').classList.add('hidden');
+    }, 1500);
+}
+
+function updateVerificationResult(type, text, score) {
+    const el = document.getElementById(`${type}-result`);
+    el.textContent = text;
+    el.classList.remove('text-gray-400', 'text-green-600', 'text-orange-600', 'text-red-600');
+    if (text === 'Pending') {
+        el.classList.add('text-gray-400');
+    } else if (score < 50) {
+        el.classList.add('text-red-600');
+    } else if (score < 80) {
+        el.classList.add('text-orange-600');
+    } else {
+        el.classList.add('text-green-600');
+    }
+
+    if (currentUser) {
+        const roundedScore = Math.round(score);
+        if (!currentUser.liveBehavioral) {
+            const lastLogin = [...currentUser.events].reverse().find(e => e.behavioral)?.behavioral || { typing: 90, mouse: 90, device: 90 };
+            currentUser.liveBehavioral = { ...lastLogin };
+        }
+        const prefixMap = { 'typing': 'typing-cadence', 'mouse': 'mouse-dynamics', 'device': 'device-trust' };
+        if (type === 'typing') currentUser.liveBehavioral.typing = roundedScore;
+        if (type === 'mouse') currentUser.liveBehavioral.mouse = roundedScore;
+        if (type === 'device') currentUser.liveBehavioral.device = roundedScore;
+        
+        if (prefixMap[type]) {
+            updateAdminBiometricDisplay(prefixMap[type], roundedScore);
+        }
+    }
+}
+
+// --- VIDEO KYC LOGIC ---
+async function analyzeFrameWithGemini(base64Frame, challengeText) {
+    // The execution environment will automatically provide a valid key.
+    const apiKey = "";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    const prompt = `Analyze this image. The user was given the instruction: "${challengeText}". Determine if the person in the image is a real person correctly performing this action. Respond with only "Yes" or "No".`;
+    const payload = {
+        contents: [{
+            parts: [
+                { text: prompt },
+                { inlineData: { mimeType: "image/jpeg", data: base64Frame } }
+            ]
+        }]
+    };
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+        const result = await response.json();
+        return result.candidates?.[0]?.content?.parts?.[0]?.text;
+    } catch (error) {
+        console.error("Gemini API call failed:", error);
+        return "Error";
+    }
+}
+
+async function setupKycCamera() {
+    try {
+        kycStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        kycVideo.srcObject = kycStream;
+        await new Promise((resolve) => { kycVideo.onloadedmetadata = resolve; });
+        return true;
+    } catch (error) {
+        console.error("Camera setup failed:", error);
+        kycFailureReason.textContent = "Could not access the camera. Please check permissions and try again.";
+        showKycFailure();
+        return false;
+    }
+}
+function stopKycCamera() {
+    if (kycStream) {
+        kycStream.getTracks().forEach(track => track.stop());
+        kycStream = null;
+    }
+}
+
+function startKycVerification() {
+    resetKycUI();
+    kycStartButton.classList.add('hidden');
+    kycChallengeUI.classList.remove('hidden');
+    kycRecordButton.classList.remove('hidden');
+    
+    kycCurrentChallenge = kycChallenges[Math.floor(Math.random() * kycChallenges.length)];
+    kycInstructionText.textContent = kycCurrentChallenge;
+    kycStatusText.textContent = 'Ready to record.';
+}
+
+function startKycRecording() {
+    if (!kycStream) return;
+    kycIsRecording = true;
+    kycRecordedChunks = [];
+    kycMediaRecorder = new MediaRecorder(kycStream, { mimeType: 'video/webm' });
+    kycMediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) kycRecordedChunks.push(event.data); };
+    kycMediaRecorder.onstop = processKycVideo;
+    kycMediaRecorder.start();
+    kycRecordButton.textContent = 'Stop & Analyze';
+    kycStatusDot.className = 'kyc-status-dot recording';
+    kycStatusText.textContent = 'Recording... (3 seconds)';
+    setTimeout(stopKycRecording, 3000);
+}
+
+function stopKycRecording() {
+    if (kycMediaRecorder && kycMediaRecorder.state !== 'inactive') {
+        kycMediaRecorder.stop();
+    }
+    kycIsRecording = false;
+    kycRecordButton.textContent = 'Analyzing...';
+    kycRecordButton.disabled = true;
+    kycStatusContainer.classList.add('hidden');
+    kycLoader.classList.remove('hidden');
+}
+
+async function processKycVideo() {
+    const blob = new Blob(kycRecordedChunks, { type: 'video/webm' });
+    const tempVideo = document.createElement('video');
+    tempVideo.src = URL.createObjectURL(blob);
+    tempVideo.onloadeddata = () => { tempVideo.currentTime = tempVideo.duration * 0.95; };
+    tempVideo.onseeked = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = tempVideo.videoWidth;
+        canvas.height = tempVideo.videoHeight;
+        canvas.getContext('2d').drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
+        const base64Frame = canvas.toDataURL('image/jpeg').split(',')[1];
+        const resultText = await analyzeFrameWithGemini(base64Frame, kycCurrentChallenge);
+        kycLoader.classList.add('hidden');
+        kycChallengeUI.classList.add('hidden');
+        kycResultUI.classList.remove('hidden');
+        if (resultText && resultText.trim().toLowerCase().includes('yes')) {
+            kycSuccessMessage.classList.remove('hidden');
+        } else {
+            kycFailureReason.textContent = resultText === "Error" ? "Analysis failed. Please try again." : "Liveness check failed. The action was not detected correctly.";
+            kycFailureMessage.classList.remove('hidden');
+        }
+        URL.revokeObjectURL(tempVideo.src);
+    };
+}
+
+function showKycFailure() {
+     kycChallengeUI.classList.add('hidden');
+     kycResultUI.classList.remove('hidden');
+     kycFailureMessage.classList.remove('hidden');
+}
+
+function resetKycUI() {
+    kycStartButton.classList.remove('hidden');
+    kycRecordButton.classList.add('hidden');
+    kycRecordButton.disabled = false;
+    kycRecordButton.textContent = 'Start Recording';
+    kycChallengeUI.classList.add('hidden');
+    kycResultUI.classList.add('hidden');
+    kycSuccessMessage.classList.add('hidden');
+    kycFailureMessage.classList.add('hidden');
+    kycStatusContainer.classList.remove('hidden');
+    kycLoader.classList.add('hidden');
+    kycStatusDot.className = 'kyc-status-dot pending';
+    kycStatusText.textContent = 'Awaiting user action...';
+    kycInstructionText.textContent = '';
+}
+
+
+// --- EVENT LISTENERS ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Main View Toggles
+    adminViewBtn.addEventListener('click', showAdminView);
+    userViewBtn.addEventListener('click', showUserView);
+    
+    renderUserList();
+    showUserView(); // Set user view with selection as default
+
+    // Auth Method Selection
+    startVideoKycBtn.addEventListener('click', () => {
+        authSelectionView.classList.add('hidden');
+        videoKycView.classList.remove('hidden');
+    });
+
+    startBehavioralAuthBtn.addEventListener('click', () => {
+        authSelectionView.classList.add('hidden');
+        behavioralAuthView.classList.remove('hidden');
+    });
+    
+    document.querySelectorAll('.back-to-selection').forEach(btn => {
+        btn.addEventListener('click', () => {
+            behavioralAuthView.classList.add('hidden');
+            videoKycView.classList.add('hidden');
+            authSelectionView.classList.remove('hidden');
+            stopKycCamera();
+        });
+    });
+
+    // Admin Panel Listeners
+    userCardsContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('[data-user-id]');
+        if (card) renderUserDetails(card.dataset.userId);
+    });
+
+    backButton.addEventListener('click', () => {
+        userDetailView.classList.add('hidden');
+        userListView.classList.remove('hidden');
+    });
+    
+    document.getElementById('trigger-verification-btn').addEventListener('click', () => {
+        showUserView();
+    });
+
+    // Behavioral Auth Listeners
+    typingTestInput.addEventListener('keydown', handleTyping);
+    mouseCanvas.addEventListener('mousemove', handleMouseMove);
+    mouseCanvas.addEventListener('mouseleave', () => { lastMousePoint = null; });
+    verifyDeviceBtn.addEventListener('click', verifyDevice);
+    
+    // Video KYC Listeners
+    kycStartButton.addEventListener('click', async () => {
+        kycStartButton.disabled = true;
+        kycStartButton.textContent = 'Initializing Camera...';
+        const cameraReady = await setupKycCamera();
+        if (cameraReady) {
+            startKycVerification();
+        }
+        kycStartButton.disabled = false;
+        kycStartButton.textContent = 'Start Verification';
+    });
+
+    kycRecordButton.addEventListener('click', () => {
+        if (kycIsRecording) stopKycRecording();
+        else startKycRecording();
+    });
+
+    kycRetryButton.addEventListener('click', () => {
+        resetKycUI();
+        startKycVerification();
+    });
+});
+</script>
+</body>
+</html>
+

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BoB VeriTrue - Liveness Check</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; text-align: center; margin-top: 30px; background-color: #f4f4f9; }
+        #video { border: 3px solid #ccc; border-radius: 12px; background-color: #000; }
+        #status { margin-top: 15px; font-size: 1.2em; font-weight: bold; min-height: 30px; }
+        #result { margin-top: 10px; font-size: 1.5em; font-weight: bold; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+        #startButton { font-size: 1.2em; padding: 10px 20px; margin-top: 15px; border-radius: 8px; border: none; background-color: #007bff; color: white; cursor: pointer; transition: background-color 0.3s; }
+        #startButton:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .verified { color: #28a745; }
+        .failed { color: #dc3545; }
+        .processing { color: #333; }
+        .suspicious { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>BoB VeriTrue - Physiological Verification</h1>
+    <video id="video" width="640" height="480" autoplay muted playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    
+    <div id="status" class="processing">Please start the camera to begin.</div>
+    <div id="result"></div>
+    
+    <button id="startButton">Start Camera</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        const startButton = document.getElementById('startButton');
+        const FPS = 10;
+
+        let frameSenderInterval = null;
+        const socket = io('https://bob-backend-api.onrender.com/');
+
+        function startVerification() {
+            if (frameSenderInterval) return; // Prevent multiple intervals
+
+            startButton.disabled = true;
+            resultDiv.textContent = '';
+            resultDiv.className = '';
+
+            frameSenderInterval = setInterval(() => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                let data = canvas.toDataURL('image/jpeg', 0.5);
+                socket.emit('video_frame', data);
+            }, 1000 / FPS);
+        }
+
+        function stopVerification() {
+            if (frameSenderInterval) {
+                clearInterval(frameSenderInterval);
+                frameSenderInterval = null;
+            }
+            startButton.disabled = false;
+        }
+
+        function startCamera() {
+            startButton.disabled = true;
+            statusDiv.textContent = 'Starting camera...';
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                    startButton.textContent = 'Start Verification';
+                    statusDiv.textContent = 'Please remain still and look at the camera.';
+                    startButton.disabled = false;
+                })
+                .catch(err => {
+                    console.error("Error accessing camera: ", err);
+                    statusDiv.textContent = 'Error: Could not access camera.';
+                    resultDiv.className = 'failed';
+                });
+        }
+        
+        startButton.addEventListener('click', () => {
+            if (video.srcObject) {
+                startVerification();
+            } else {
+                startCamera();
+            }
+        });
+
+        socket.on('status_update', (data) => {
+            statusDiv.textContent = `${data.message}`;
+        });
+
+        socket.on('verification_result', (data) => {
+            stopVerification(); // Stop sending frames
+            console.log('Result received:', data);
+
+            // FIXED: Check for the actual status strings sent by backend
+            if (data.status && data.status.includes('Verified - Authentic Human')) {
+                // SUCCESS CASE - Real human detected
+                resultDiv.className = 'verified';
+                resultDiv.innerHTML = `
+                    ✅ <strong>HUMAN VERIFIED</strong><br>
+                    Heart Rate: ${data.bmp} BPM<br>
+                    Confidence: ${(data.confidence * 100).toFixed(1)}%<br>
+                    Signal Quality: ${data.snr.toFixed(3)}
+                `;
+                statusDiv.textContent = 'Verification successful! You are authenticated as a real human.';
+                startButton.textContent = 'Verify Again';
+            } 
+            else if (data.status && data.status.includes('Suspicious - Possible Deepfake')) {
+                // DEEPFAKE DETECTED
+                resultDiv.className = 'suspicious';
+                resultDiv.innerHTML = `
+                    ⚠️ <strong>DEEPFAKE DETECTED</strong><br>
+                    ${data.reason}<br>
+                    Confidence: ${(data.confidence * 100).toFixed(1)}%
+                `;
+                statusDiv.textContent = 'Possible deepfake detected. Please try with proper lighting and stability.';
+                startButton.textContent = 'Try Again';
+            }
+            else if (data.status && data.status === 'Failed') {
+                // FAILED/ERROR
+                resultDiv.className = 'failed';
+                resultDiv.innerHTML = `
+                    ❌ <strong>VERIFICATION FAILED</strong><br>
+                    ${data.reason || 'Unable to detect biological signals'}
+                `;
+                statusDiv.textContent = 'Please check lighting and stability, then try again.';
+                startButton.textContent = 'Try Again';
+            }
+            else {
+                // FALLBACK for any other case
+                resultDiv.className = 'failed';
+                resultDiv.textContent = `❌ Unknown result: ${data.status}`;
+                statusDiv.textContent = 'Unexpected result. Please try again.';
+                startButton.textContent = 'Try Again';
+            }
+        });
+
+        socket.on('disconnect', () => {
+            stopVerification();
+            statusDiv.textContent = 'Connection lost. Please refresh.';
+            resultDiv.className = 'failed';
+            startButton.disabled = true;
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+#Core web framework and async support
+fastapi
+uvicorn[standard]
+python-socketio
+python-multipart
+gunicorn
+
+#Computer vision and image processing
+opencv-python
+numpy
+Pillow
+
+#Signal processing and scientific computing
+scipy
+scikit-learn
+
+#Async and utilities
+asyncio-mqtt
+python-dotenv
+
+#Logging and monitoring
+colorlog
+
+#Data handling
+pandas
+
+#Optional: For enhanced performance (uncomment if needed)
+numba
+opencv-contrib-python
+
+#Development dependencies (optional)
+pytest
+black
+flake8
+

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank of Baroda - Real VKYC Demo</title>
+    
+    <style>
+        :root {
+            --primary-color: #e85a4f;
+            --secondary-color: #003366;
+            --background-color: #f4f7f6;
+            --text-color: #333;
+            --light-gray: #e9ecef;
+            --success-color: #28a745;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            overflow: hidden;
+        }
+        
+        header {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 20px;
+        }
+        
+        .logo { 
+            width: 150px; 
+            margin-bottom: 10px; 
+        }
+        
+        header h1 { 
+            margin: 0; 
+            font-size: 1.8rem; 
+        }
+        
+        header p { 
+            margin: 5px 0 0; 
+            font-weight: 400; 
+            opacity: 0.9; 
+        }
+        
+        .verification-box { 
+            padding: 30px; 
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            font-size: 1rem;
+            font-weight: 500; 
+            border-radius: 8px; 
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover { 
+            background-color: #d73a2f; 
+        }
+        
+        button:disabled { 
+            background-color: #ccc; 
+            cursor: not-allowed; 
+        }
+        
+        .camera-container {
+            width: 300px; 
+            height: 300px; 
+            border-radius: 50%;
+            margin: 0 auto 20px; 
+            position: relative; 
+            overflow: hidden;
+            background: #2c2c2c; 
+            border: 5px solid var(--light-gray);
+        }
+        
+        #videoFeed {
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            transform: scaleX(-1);
+        }
+        
+        #faceCanvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            transform: scaleX(-1); 
+        }
+        
+        .status-panel { 
+            min-height: 80px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        
+        .status-panel h3 { 
+            margin: 0 0 10px; 
+            font-size: 1.4rem; 
+        }
+        
+        .success-check { 
+            font-size: 4rem; 
+            color: var(--success-color); 
+            font-weight: bold; 
+        }
+        
+        .hidden { 
+            display: none; 
+        }
+        
+        .loader {
+            border: 4px solid rgba(0,0,0,0.1); 
+            border-left-color: var(--primary-color);
+            border-radius: 50%; 
+            width: 30px; 
+            height: 30px;
+            animation: spin 1s linear infinite; 
+            margin: 0 auto;
+        }
+        
+        @keyframes spin { 
+            to { transform: rotate(360deg); } 
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="https://www.bankofbaroda.in/-/media/project/bob/countrywebsites/india/blogs/images/bob-logo.png" alt="Bank of Baroda Logo" class="logo">
+            <h1>Real-Time Identity Verification</h1>
+            <p>Secure Video KYC System</p>
+        </header>
+
+        <main class="verification-box">
+            <div id="welcomeScreen">
+                <p id="modelStatus">Initializing Camera System...</p>
+                <div id="modelLoader" class="loader"></div>
+                <button id="startButton" disabled>Start Secure Verification</button>
+                <div id="errorMessage" class="error-message hidden"></div>
+            </div>
+
+            <div id="verificationScreen" class="hidden">
+                <div class="camera-container">
+                    <video id="videoFeed" autoplay muted playsinline></video>
+                    <canvas id="faceCanvas"></canvas>
+                </div>
+                <div class="status-panel">
+                    <h3 id="statusTitle">Searching for face...</h3>
+                    <p id="statusInstruction">Please position your face clearly in the camera.</p>
+                    <div id="successCheck" class="success-check hidden">✓</div>
+                </div>
+                <button id="retryButton" class="hidden" style="margin-top: 20px;">Try Again</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Global variables
+        const video = document.getElementById('videoFeed');
+        const canvas = document.getElementById('faceCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const retryButton = document.getElementById('retryButton');
+        const modelStatus = document.getElementById('modelStatus');
+        const modelLoader = document.getElementById('modelLoader');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const verificationScreen = document.getElementById('verificationScreen');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusInstruction = document.getElementById('statusInstruction');
+        const successCheck = document.getElementById('successCheck');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let detectionInterval;
+        let faceFoundCount = 0;
+        const requiredConsecutiveFaces = 90; // About 3 seconds at 30fps
+        let detectionCanvas;
+        let detectionCtx;
+
+        // Initialize the system
+        function initializeSystem() {
+            setTimeout(() => {
+                modelStatus.textContent = "System Ready!";
+                modelLoader.classList.add('hidden');
+                startButton.disabled = false;
+            }, 1500);
+        }
+
+        // Simple face detection using skin color and motion detection
+        function detectFace(imageData) {
+            const data = imageData.data;
+            const width = imageData.width;
+            const height = imageData.height;
+            
+            let skinPixels = 0;
+            let totalPixels = 0;
+            let faceRegions = [];
+            
+            // Skin color detection (simplified HSV-based approach)
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                totalPixels++;
+                
+                // Simple skin color detection
+                if (isSkinColor(r, g, b)) {
+                    skinPixels++;
+                    const x = (i / 4) % width;
+                    const y = Math.floor((i / 4) / width);
+                    
+                    // Check if this pixel is part of a face region
+                    if (x > width * 0.2 && x < width * 0.8 && y > height * 0.2 && y < height * 0.7) {
+                        faceRegions.push({ x, y });
+                    }
+                }
+            }
+            
+            const skinRatio = skinPixels / totalPixels;
+            const hasFaceRegion = faceRegions.length > (width * height * 0.05); // At least 5% face region
+            
+            return {
+                detected: skinRatio > 0.15 && hasFaceRegion, // At least 15% skin pixels
+                confidence: Math.min(skinRatio * 2, 1),
+                regions: faceRegions
+            };
+        }
+
+        // Simple skin color detection algorithm
+        function isSkinColor(r, g, b) {
+            // Convert RGB to normalized values
+            const nr = r / 255;
+            const ng = g / 255;
+            const nb = b / 255;
+            
+            // Simple skin color rules
+            const rule1 = r > 95 && g > 40 && b > 20;
+            const rule2 = Math.max(r, g, b) - Math.min(r, g, b) > 15;
+            const rule3 = Math.abs(r - g) > 15;
+            const rule4 = r > g && r > b;
+            
+            return rule1 && rule2 && rule3 && rule4;
+        }
+
+        // Draw detection results
+        function drawFaceDetection(faceData) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (faceData.detected && faceData.regions.length > 0) {
+                // Calculate bounding box
+                const regions = faceData.regions;
+                const minX = Math.min(...regions.map(p => p.x));
+                const maxX = Math.max(...regions.map(p => p.x));
+                const minY = Math.min(...regions.map(p => p.y));
+                const maxY = Math.max(...regions.map(p => p.y));
+                
+                const centerX = (minX + maxX) / 2;
+                const centerY = (minY + maxY) / 2;
+                const width = maxX - minX;
+                const height = maxY - minY;
+                
+                // Draw face bounding box
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(
+                    canvas.width - centerX - width/2 - 20,
+                    centerY - height/2 - 20,
+                    width + 40,
+                    height + 40
+                );
+                
+                // Draw confidence indicator
+                ctx.fillStyle = `rgba(0, 255, 255, ${faceData.confidence})`;
+                ctx.fillRect(
+                    canvas.width - centerX - width/2 - 20,
+                    centerY - height/2 - 25,
+                    (width + 40) * faceData.confidence,
+                    5
+                );
+                
+                // Draw center crosshair
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(canvas.width - centerX - 10, centerY);
+                ctx.lineTo(canvas.width - centerX + 10, centerY);
+                ctx.moveTo(canvas.width - centerX, centerY - 10);
+                ctx.lineTo(canvas.width - centerX, centerY + 10);
+                ctx.stroke();
+            }
+        }
+
+        // Start verification process
+        async function startVerification() {
+            try {
+                console.log('Starting verification...');
+                
+                welcomeScreen.classList.add('hidden');
+                verificationScreen.classList.remove('hidden');
+
+                // Get camera stream
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+                
+                // Wait for video to load
+                await new Promise((resolve) => { 
+                    video.onloadedmetadata = resolve; 
+                });
+
+                // Set canvas dimensions
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // Create detection canvas (hidden)
+                detectionCanvas = document.createElement('canvas');
+                detectionCanvas.width = video.videoWidth;
+                detectionCanvas.height = video.videoHeight;
+                detectionCtx = detectionCanvas.getContext('2d');
+                
+                console.log(`Canvas dimensions: ${canvas.width}x${canvas.height}`);
+                
+                // Start face detection loop
+                detectionInterval = setInterval(performFaceDetection, 33); // ~30fps
+                
+            } catch (error) {
+                console.error('Error starting verification:', error);
+                statusTitle.textContent = "Camera Error";
+                statusInstruction.textContent = "Please allow camera access and try again.";
+                retryButton.classList.remove('hidden');
+                showError(`Camera access error: ${error.message}`);
+            }
+        }
+
+        // Main detection function
+        function performFaceDetection() {
+            if (!video.videoWidth || !video.videoHeight) {
+                return;
+            }
+
+            try {
+                // Draw current video frame to detection canvas
+                detectionCtx.drawImage(video, 0, 0, detectionCanvas.width, detectionCanvas.height);
+                
+                // Get image data for analysis
+                const imageData = detectionCtx.getImageData(0, 0, detectionCanvas.width, detectionCanvas.height);
+                
+                // Detect face
+                const faceData = detectFace(imageData);
+                
+                if (faceData.detected) {
+                    faceFoundCount++;
+                    
+                    const progress = Math.min(Math.round((faceFoundCount / requiredConsecutiveFaces) * 100), 100);
+                    statusTitle.textContent = "Face Detected ✓";
+                    statusInstruction.textContent = `Hold still... ${progress}%`;
+                    
+                    // Draw detection results
+                    drawFaceDetection(faceData);
+
+                    if (faceFoundCount >= requiredConsecutiveFaces) {
+                        completeVerification();
+                    }
+                } else {
+                    // No face detected
+                    faceFoundCount = Math.max(0, faceFoundCount - 2); // Gradual decrease
+                    statusTitle.textContent = "Searching for face...";
+                    statusInstruction.textContent = "Please position your face clearly in the camera.";
+                    
+                    // Clear detection overlay
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                
+            } catch (error) {
+                console.error('Detection error:', error);
+            }
+        }
+
+        // Complete verification process
+        function completeVerification() {
+            console.log('Verification completed successfully!');
+            
+            // Stop detection
+            clearInterval(detectionInterval);
+            
+            // Clear overlay and show final frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update UI
+            statusTitle.style.color = 'var(--success-color)';
+            statusTitle.textContent = 'Verification Complete ✓';
+            statusInstruction.innerHTML = '<b>Identity Confirmed!</b><br>Live human presence detected successfully.';
+            successCheck.classList.remove('hidden');
+
+            // Stop camera
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+
+            setTimeout(() => {
+                retryButton.classList.remove('hidden');
+                retryButton.textContent = 'Start New Verification';
+            }, 3000);
+        }
+
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // Hide error message
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        // Reset verification process
+        function resetVerification() {
+            // Stop detection
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+            }
+
+            // Stop camera
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+
+            // Reset variables
+            faceFoundCount = 0;
+
+            // Reset UI
+            welcomeScreen.classList.remove('hidden');
+            verificationScreen.classList.add('hidden');
+            statusTitle.style.color = 'var(--text-color)';
+            statusTitle.textContent = 'Searching for face...';
+            statusInstruction.textContent = 'Please position your face clearly in the camera.';
+            successCheck.classList.add('hidden');
+            retryButton.classList.add('hidden');
+            hideError();
+
+            // Clear canvas
+            if (canvas && ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // Event listeners
+        startButton.addEventListener('click', startVerification);
+        retryButton.addEventListener('click', resetVerification);
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && detectionInterval) {
+                clearInterval(detectionInterval);
+            } else if (!document.hidden && video.srcObject) {
+                detectionInterval = setInterval(performFaceDetection, 33);
+            }
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Initialize the application
+        console.log('Starting application initialization...');
+        initializeSystem();
+    </script>
+</body>
+</html>

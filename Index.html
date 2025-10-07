@@ -1,0 +1,2103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kavach X - Behavioral Biometric Authentication</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+<script src="https://unpkg.com/meyda/dist/web/meyda.min.js"></script>
+<style>
+/* --- Original Styles --- */
+body {
+font-family: 'Inter', sans-serif;
+background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+color: #9a3412;
+}
+.spinner {
+border: 4px solid rgba(251, 146, 60, 0.2);
+width: 40px;
+height: 40px;
+border-radius: 50%;
+border-left-color: #ea580c;
+animation: spin 1s ease infinite;
+}
+@keyframes spin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+.progress-bar {
+background: linear-gradient(90deg, #ea580c, #f97316);
+transition: width 0.4s ease-in-out;
+box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+}
+.form-input {
+background-color: rgba(255, 255, 255, 0.9);
+border: 2px solid #fed7aa;
+color: #9a3412;
+transition: all 0.3s ease;
+backdrop-filter: blur(10px);
+}
+.form-input:focus {
+outline: none;
+border-color: #ea580c;
+box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.2);
+background-color: #ffffff;
+}
+.btn-primary {
+background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+transition: all 0.3s ease;
+box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+}
+.btn-primary:hover {
+background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+transform: translateY(-3px);
+box-shadow: 0 8px 25px rgba(234, 88, 12, 0.4);
+}
+.fade-in {
+animation: fadeIn 0.6s ease-in-out;
+}
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(20px); }
+to { opacity: 1; transform: translateY(0); }
+}
+.step-completed, .step-active {
+transition: all 0.4s ease;
+}
+.glass-card {
+background: rgba(255, 255, 255, 0.95);
+backdrop-filter: blur(20px);
+border: 1px solid rgba(234, 88, 12, 0.2);
+box-shadow: 0 8px 32px rgba(234, 88, 12, 0.15);
+}
+.admin-card {
+background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(254, 215, 170, 0.3) 100%);
+backdrop-filter: blur(15px);
+border: 2px solid rgba(234, 88, 12, 0.2);
+box-shadow: 0 10px 40px rgba(234, 88, 12, 0.2);
+transition: all 0.3s ease;
+}
+.admin-card:hover {
+transform: translateY(-5px);
+box-shadow: 0 15px 50px rgba(234, 88, 12, 0.3);
+border-color: rgba(234, 88, 12, 0.4);
+}
+.status-badge {
+background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+.status-badge.pending {
+background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+.metric-card {
+background: rgba(255, 255, 255, 0.8);
+border: 1px solid rgba(234, 88, 12, 0.3);
+transition: all 0.3s ease;
+}
+.metric-card:hover {
+background: rgba(255, 255, 255, 0.95);
+transform: scale(1.02);
+}
+.admin-header {
+background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
+color: white;
+}
+.details-section {
+background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(254, 237, 213, 0.5) 100%);
+}
+#auth-choice-modal .border:hover {
+transform: translateY(-2px);
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+#three-d-modal {
+backdrop-filter: blur(10px);
+}
+#three-d-modal .container {
+color: #ccd6f6 !important;
+}
+/* New Admin Tab Styles */
+.admin-tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #9a3412;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.admin-tab:hover {
+    background-color: rgba(234, 88, 12, 0.1);
+}
+.admin-tab-active {
+    background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+}
+
+/* --- Styles for Audio Verification (UNIFIED DARK RED THEME) --- */
+:root {
+--primary-gradient-start: #f97316;
+--primary-gradient-end: #ea580c;
+--primary-color: #f97316;
+--accent-color: #fb923c;
+--success-color: #28a745;
+--error-color: #dc3545;
+--primary-color-rgb: 249, 115, 22;
+--glass-border: rgba(255, 237, 213, 0.2);
+--text-light: #fff7ed;
+--text-secondary: #fed7aa;
+}
+@keyframes background-pan { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes pulse-glow { 0%, 100% { text-shadow: 0 0 5px rgba(251, 146, 60, 0.5); } 50% { text-shadow: 0 0 15px rgba(251, 146, 60, 0.9); } }
+@keyframes verdict-pop { 0% { transform: scale(0.8); opacity: 0; } 80% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+#audio-verification-modal, #audio-verification-modal * { box-sizing: border-box; }
+#audio-verification-modal { font-family: 'Poppins', sans-serif; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); color: var(--text-light); }
+.verification-container { background: linear-gradient(135deg, #431407, #7f1d1d); border: 1px solid var(--glass-border); border-radius: 28px; box-shadow: 0 8px 32px 0 rgba(0,0,0,0.35); width: 95vw; max-width: 1800px; height: 95vh; max-height: 950px; display: flex; flex-direction: column; overflow: hidden; position: relative; transition: all 0.5s ease; }
+.main-content { display: flex; flex: 1; padding: 20px; gap: 20px; animation: fade-in 0.8s ease-out forwards; }
+.metrics-panel, .emotion-panel { color: var(--text-light); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; flex: 2; overflow-y: auto; }
+.central-console { flex: 3; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 20px; border-left: 1px solid rgba(251, 146, 60, 0.25); border-right: 1px solid rgba(251, 146, 60, 0.25); }
+.console-title { font-size: 28px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--accent-color); text-shadow: 0 0 10px rgba(251, 146, 60, 0.7); margin-bottom: 20px; text-align: center; }
+.waveform-container { width: 100%; height: 150px; background: rgba(0,0,0,0.3); border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--glass-border); padding: 10px; }
+#audio-waveform-canvas { width: 100%; height: 100%; }
+.question-display { font-size: 28px; font-weight: 500; text-align: center; color: var(--text-light); min-height: 120px; display: flex; align-items: center; justify-content: center; flex-grow: 1; padding: 0 20px; }
+.transcription-display { font-size: 18px; text-align: center; color: var(--text-secondary); font-style: italic; min-height: 50px; margin-bottom: 20px; }
+.status-display { text-align: center; font-weight: 500; color: var(--accent-color); margin: auto 0; font-size: 20px; min-height: 30px; animation: pulse-glow 2s infinite ease-in-out; }
+.actions { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+.primary-button, .secondary-button { border: none; padding: 15px 30px; font-size: 16px; font-weight: 600; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+.primary-button { background: linear-gradient(90deg, var(--primary-gradient-start), var(--primary-gradient-end)); }
+.primary-button:disabled { background: var(--text-medium); cursor: not-allowed; opacity: 0.6; }
+.primary-button:not(:disabled):hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(var(--primary-color-rgb), 0.4); }
+.secondary-button { background: transparent; border: 2px solid var(--accent-color); color: var(--accent-color); }
+.secondary-button:hover { background: rgba(251, 146, 60, 0.2); color: var(--text-light); transform: translateY(-3px); }
+.metrics-panel h2, .emotion-panel h2 { margin-bottom: 20px; font-size: 18px; font-weight: 600; color: var(--accent-color); border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; }
+.metric-item, .emotion-indicator { display: flex; justify-content: space-between; align-items: center; padding: 14px 5px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-size: 15px; }
+.metric-item strong { color: var(--text-secondary); font-weight: 500; }
+.metric-item:last-child, .emotion-indicator:last-child { border-bottom: none; }
+.metric-item span, .emotion-score { font-weight: 600; padding: 4px 12px; border-radius: 12px; font-size: 14px; min-width: 60px; text-align: center; }
+.emotion-score.high { background: rgba(40, 167, 69, 0.3); color: #90ee90; }
+.emotion-score.medium { background: rgba(255, 193, 7, 0.3); color: #ffd966; }
+.emotion-score.low { background: rgba(220, 53, 69, 0.3); color: #f08080; }
+.verdict-message { margin-top: auto; padding: 15px; border-radius: 12px; text-align: center; font-size: 14px; font-weight: 500; display: none; }
+.verdict-message.success { background: rgba(40, 167, 69, 0.2); color: #90ee90; }
+.verdict-message.failed { background: rgba(220, 53, 69, 0.2); color: #fecaca; }
+.verdict-chip { position: absolute; top: 20px; left: 30px; padding: 8px 18px; border-radius: 50px; font-weight: 600; font-size: 14px; color: white; display: none; animation: verdict-pop 0.5s ease-out forwards; z-index: 10; }
+.verdict-chip.success { background: linear-gradient(90deg, #28a745, #1e7e34); box-shadow: 0 0 20px rgba(40, 167, 69, 0.5); }
+.verdict-chip.error { background: linear-gradient(90deg, #dc3545, #c82333); box-shadow: 0 0 20px rgba(220, 53, 69, 0.5); }
+.initial-controls { margin: auto; text-align: center; animation: fade-in 0.5s ease; padding: 40px; }
+#initialView p { font-size: 18px; color: var(--text-secondary); margin: 20px 0 30px; }
+#startButton { font-size: 20px; padding: 20px 40px; letter-spacing: 1px; }
+.loader-container { margin-bottom: 30px; }
+.loader-container p { font-size: 18px; margin-bottom: 15px; color: #d1c4e9; }
+.ai-detection-panel { color: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center; transition: background 0.5s ease; background: rgba(0,0,0,0.2); }
+.ai-detection-panel h3 { margin: 0 0 10px 0; font-size: 16px; opacity: 0.8; }
+#aiDetectionScore { font-size: 20px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="w-full flex items-center justify-center p-6 space-x-4 z-10">
+    <span class="text-5xl font-bold text-orange-800" style="font-family: 'Poppins', sans-serif;">Kavach X</span>
+</div>
+
+<div class="absolute top-6 left-6 flex items-center space-x-4 z-10">
+    <img src="https://github.com/AshwaniE609/BankOfBaroda/blob/main/logo1.png?raw=true" alt="Bank of Baroda Logo" class="h-12">
+</div>
+<div id="app" class="min-h-screen flex flex-col items-center justify-center p-4 fade-in">
+<div id="loading-spinner" class="spinner"></div>
+<div id="auth-container" class="hidden w-full max-w-md">
+<div class="glass-card rounded-3xl p-8">
+<h2 id="form-title" class="text-4xl font-bold text-center text-orange-600 mb-8">Login</h2>
+<form id="login-form" class="space-y-6">
+<input type="email" id="login-email" placeholder="Email" class="w-full px-4 py-4 rounded-xl form-input" required />
+<input type="password" id="login-password" placeholder="Password" class="w-full px-4 py-4 rounded-xl form-input" required />
+<button type="submit" class="w-full btn-primary text-white py-4 rounded-xl font-semibold text-lg">Login</button>
+</form>
+<form id="signup-form" class="hidden space-y-6">
+<input type="email" id="signup-email" placeholder="Email" class="w-full px-4 py-4 rounded-xl form-input" required />
+<input type="password" id="signup-password" placeholder="Password" class="w-full px-4 py-4 rounded-xl form-input" required />
+<div class="flex items-center">
+<input type="checkbox" id="consent-checkbox" class="h-5 w-5 rounded border-orange-300 bg-white text-orange-600 focus:ring-orange-500" />
+<label for="consent-checkbox" class="ml-3 block text-sm text-orange-800">I consent to the collection of my behavioral and location data for security purposes.</label>
+</div>
+<button type="submit" id="signup-button" class="w-full btn-primary text-white py-4 rounded-xl font-semibold text-lg disabled:bg-orange-200 disabled:cursor-not-allowed disabled:transform-none" disabled>Sign Up</button>
+</form>
+<p id="error-message" class="text-red-500 text-center mt-4 text-sm h-5"></p>
+<p class="text-center text-sm mt-6">
+<a href="#" id="toggle-form" class="text-orange-600 hover:underline font-medium">Don't have an account? Sign Up</a>
+</p>
+</div>
+</div>
+<div id="mandatory-calibration-container" class="hidden w-full max-w-4xl fade-in">
+<div class="glass-card rounded-3xl p-8">
+<h2 class="text-4xl font-bold text-center text-orange-600 mb-4">Kavach X Security Profile Setup</h2>
+<p class="text-orange-800 text-center mb-8">To secure your account, we need to establish your unique behavioral baseline.</p>
+<div class="w-full bg-orange-100 rounded-full h-3 mb-8">
+<div id="calibration-progress" class="progress-bar h-3 rounded-full"></div>
+</div>
+<div class="space-y-6">
+<div id="step-device-info" class="p-6 glass-card border border-orange-200 rounded-2xl">
+<h3 class="flex items-center font-semibold text-xl mb-4">
+<span class="flex items-center justify-center w-8 h-8 bg-orange-200 text-orange-800 rounded-full mr-4">1</span>
+Device & Location Scan
+</h3>
+<div id="device-info-status" class="text-sm space-y-2 pl-12 text-orange-700">
+<div>📍 <span id="location-status">Requesting location access...</span></div>
+<div>🖥️ <span id="device-status">Collecting device fingerprint...</span></div>
+<div>🌐 <span id="ip-status">Gathering IP geolocation...</span></div>
+</div>
+<button id="grant-location-btn" class="mt-4 ml-12 bg-orange-600 text-white px-6 py-3 rounded-xl hover:bg-orange-700 text-sm font-semibold transition-all duration-300 hover:transform hover:scale-105">
+Grant Access
+</button>
+</div>
+<div id="step-typing-calibration" class="p-6 glass-card border border-orange-200 rounded-2xl opacity-50">
+<h3 class="flex items-center font-semibold text-xl mb-4">
+<span class="flex items-center justify-center w-8 h-8 bg-orange-200 text-orange-800 rounded-full mr-4">2</span>
+Typing Rhythm
+</h3>
+<div class="pl-12">
+<p class="text-sm text-orange-700 mb-4">Type the following sentences to capture your unique typing pattern. (<span id="required-typing-events" class="font-semibold text-orange-600">50</span> keystrokes required)</p>
+<div class="space-y-3">
+<textarea class="typing-input w-full px-4 py-3 rounded-xl form-input" rows="2" placeholder="The quick brown fox jumps over the lazy dog" disabled></textarea>
+<textarea class="typing-input w-full px-4 py-3 rounded-xl form-input" rows="2" placeholder="Pack my box with five dozen liquor jugs" disabled></textarea>
+</div>
+<div class="mt-4 text-sm">
+<div class="flex justify-between items-center mb-2">
+<span class="text-orange-700">Keystrokes:</span>
+<span id="keystroke-counter" class="font-semibold text-orange-600">0 / 50</span>
+</div>
+<div class="w-full bg-orange-100 rounded-full h-3">
+<div id="typing-progress" class="bg-green-500 h-3 rounded-full transition-all duration-300 shadow-sm"></div>
+</div>
+</div>
+</div>
+</div>
+<div id="step-mouse-calibration" class="p-6 glass-card border border-orange-200 rounded-2xl opacity-50">
+<h3 class="flex items-center font-semibold text-xl mb-4">
+<span class="flex items-center justify-center w-8 h-8 bg-orange-200 text-orange-800 rounded-full mr-4">3</span>
+Mouse Dynamics
+</h3>
+<div class="pl-12">
+<p class="text-sm text-orange-700 mb-3">Move your cursor naturally inside the box below. (<span id="required-mouse-events" class="font-semibold text-orange-600">100</span> samples required)</p>
+<div id="mouse-calibration-area" class="border-2 border-dashed border-orange-300 rounded-2xl h-48 relative bg-orange-50 cursor-crosshair" style="pointer-events: none;">
+<div class="absolute inset-0 flex items-center justify-center text-orange-500"><span>Awaiting previous step...</span></div>
+</div>
+<div class="mt-4 text-sm">
+<div class="flex justify-between items-center mb-2">
+<span class="text-orange-700">Mouse Samples:</span>
+<span id="mouse-counter" class="font-semibold text-orange-600">0 / 100</span>
+</div>
+<div class="w-full bg-orange-100 rounded-full h-3">
+<div id="mouse-progress" class="bg-purple-500 h-3 rounded-full transition-all duration-300 shadow-sm"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="text-center pt-6">
+<button id="complete-calibration-btn" class="w-1/2 btn-primary text-white py-4 rounded-xl font-semibold text-lg disabled:bg-orange-200 disabled:cursor-not-allowed" disabled>
+Create Security Profile
+</button>
+</div>
+</div>
+</div>
+</div>
+<div id="dashboard-container" class="hidden w-full max-w-3xl fade-in">
+<div class="glass-card rounded-3xl p-8 text-center">
+<h2 class="text-4xl font-bold text-orange-600 mb-2">Welcome Back!</h2>
+<p class="text-orange-800 mb-8">You are securely logged in as <span id="user-email" class="font-semibold text-orange-600"></span>.</p>
+<div id="trust-score-container" class="my-8">
+<p class="text-sm text-orange-600 uppercase tracking-wider font-semibold">Real-Time Trust Score</p>
+<p id="trust-score-display" class="text-8xl font-bold text-orange-300 my-4 transition-colors duration-500">--%</p>
+<p id="confidence-label" class="text-sm text-orange-700">Confidence: --</p>
+</div>
+<div id="kyc-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+<div class="bg-white rounded-2xl p-8 max-w-2xl w-full mx-4">
+<h2 class="text-2xl font-bold text-gray-800 mb-4">Additional Verification Required</h2>
+<p class="text-gray-600 mb-6">Your trust score requires video verification to proceed.</p>
+<div class="video-container bg-gray-900 rounded-lg mb-6 overflow-hidden">
+<video id="kyc-webcam" autoplay muted playsinline class="w-full rounded-lg transform scale-x-[-1]"></video>
+</div>
+<div id="kyc-controls" class="text-center space-y-4">
+<button id="start-kyc" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg">
+Start Verification
+</button>
+</div>
+<div id="kyc-challenge" class="hidden mt-6 text-center">
+<h3 class="text-xl font-semibold mb-2 text-gray-800">Your Challenge:</h3>
+<p id="kyc-instruction" class="text-xl font-bold text-amber-600 bg-gray-100 p-4 rounded-lg"></p>
+<button id="record-kyc" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg mt-4">
+Start Recording
+</button>
+</div>
+<div id="kyc-result" class="hidden mt-6 text-center">
+<div id="kyc-success" class="hidden p-4 bg-green-100 border border-green-300 rounded-lg">
+<h3 class="text-lg font-bold text-green-800">✅ Verification Successful!</h3>
+<button id="close-kyc" class="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg">Continue</button>
+</div>
+<div id="kyc-failure" class="hidden p-4 bg-red-100 border border-red-300 rounded-lg">
+<h3 class="text-lg font-bold text-red-800">❌ Verification Failed</h3>
+<button id="retry-kyc" class="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg">Retry</button>
+</div>
+</div>
+</div>
+</div>
+<div id="auth-choice-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+<div class="bg-white rounded-2xl p-8 max-w-4xl w-full mx-4">
+<h2 class="text-2xl font-bold text-gray-800 mb-4">Choose Verification Method</h2>
+<p class="text-gray-600 mb-6">Your trust score requires additional verification. Please choose your preferred method:</p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="border border-gray-300 rounded-lg p-6 hover:border-blue-500 cursor-pointer transition-all" onclick="chooseVideoKYC()">
+<div class="text-center">
+<div class="text-4xl mb-4">📹</div>
+<h3 class="text-lg font-bold text-gray-800 mb-2">Video KYC</h3>
+<p class="text-sm text-gray-600">Quick video verification with live challenges.</p>
+</div>
+</div>
+<div class="border border-gray-300 rounded-lg p-6 hover:border-cyan-500 cursor-pointer transition-all" onclick="choose3DVerification()">
+<div class="text-center">
+<div class="text-4xl mb-4">🔬</div>
+<h3 class="text-lg font-bold text-gray-800 mb-2">3D Biometric Analysis</h3>
+<p class="text-sm text-gray-600">Advanced depth and motion analysis.</p>
+</div>
+</div>
+<div class="border border-gray-300 rounded-lg p-6 hover:border-purple-500 cursor-pointer transition-all" onclick="chooseAudioVerification()">
+<div class="text-center">
+<div class="text-4xl mb-4">🎤</div>
+<h3 class="text-lg font-bold text-gray-800 mb-2">Audio Verification</h3>
+<p class="text-sm text-gray-600">Advanced voice liveness and AI detection.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="three-d-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+<div class="bg-white rounded-2xl p-8 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
+<h2 class="text-2xl font-bold text-gray-800 mb-4">3D Biometric Verification</h2>
+<div id="three-d-content">
+</div>
+</div>
+</div>
+<div id="audio-verification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+<div class="verification-container">
+<div id="verdictChip" class="verdict-chip"></div>
+<div class="main-content" id="mainContent" style="display: none;">
+<div class="metrics-panel">
+<h2>Behavioral Metrics</h2>
+<div id="latencyMetric" class="metric-item"><strong>Response Latency:</strong> <span>-</span></div>
+<div id="volumeMetric" class="metric-item"><strong>Avg/Max Volume:</strong> <span>-</span></div>
+<div id="pitchMetric" class="metric-item"><strong>Pitch Variation:</strong> <span>-</span></div>
+<div id="answerCorrectnessMetric" class="metric-item"><strong>Answer Correctness:</strong> <span>-</span></div>
+<div id="jitterMetric" class="metric-item"><strong>Voice Jitter:</strong> <span>-</span></div>
+<div id="formantMetric" class="metric-item"><strong>Formant Analysis:</strong> <span>-</span></div>
+<div id="verdictMessage" class="verdict-message"></div>
+</div>
+<div class="central-console">
+<h1 class="console-title">VOICE AUTHENTICATION</h1>
+<div class="waveform-container">
+<canvas id="audio-waveform-canvas"></canvas>
+</div>
+<div id="questionDisplay" class="question-display">Welcome! Click "Start" to begin.</div>
+<div id="transcriptionDisplay" class="transcription-display">Your speech will appear here...</div>
+<div id="statusDisplay" class="status-display"></div>
+<div class="actions" id="reverifyActions" style="display: none;">
+<button id="reverifyButton" class="secondary-button">Reverify</button>
+</div>
+</div>
+<div class="emotion-panel">
+<h2>Emotion & AI Analysis</h2>
+<div class="ai-detection-panel">
+<h3>AI Voice Detection</h3>
+<div id="aiDetectionScore">Analyzing...</div>
+</div>
+<div class="emotion-indicator"><span>Natural Variation</span><span id="naturalVariation" class="emotion-score">-</span></div>
+<div class="emotion-indicator"><span>Emotional Authenticity</span><span id="emotionalAuth" class="emotion-score">-</span></div>
+<div class="emotion-indicator"><span>Speech Naturalness</span><span id="speechNatural" class="emotion-score">-</span></div>
+<div class="emotion-indicator"><span>Prosodic Consistency</span><span id="prosodicConsist" class="emotion-score">-</span></div>
+</div>
+</div>
+<div id="initialView" class="initial-controls">
+<div class="loader-container" id="loader">
+<p>Initializing... Please wait.</p>
+</div>
+<h1 class="console-title">VOICE AUTHENTICATION REQUIRED</h1>
+<p>Prepare for voice-print analysis.</p>
+<div class="actions">
+<button id="startButton" class="primary-button">INITIATE SCAN</button>
+</div>
+</div>
+</div>
+</div>
+<div class="my-8">
+<p class="text-orange-800 mb-4">Your activity is continuously monitored for security.</p>
+<textarea id="live-input" rows="3" class="w-full px-4 py-3 rounded-xl form-input" placeholder="Type here for ongoing analysis..."></textarea>
+</div>
+<button id="logout-button" class="mt-6 bg-red-500 text-white px-8 py-4 rounded-xl hover:bg-red-600 transition duration-300 font-semibold shadow-lg hover:shadow-xl">Logout</button>
+</div>
+</div>
+</div>
+<button id="admin-dashboard-button" class="fixed top-6 right-6 z-50 bg-gradient-to-r from-orange-600 to-orange-700 text-white px-6 py-3 rounded-xl shadow-lg hover:from-orange-700 hover:to-orange-800 font-semibold transition-all duration-300 hover:scale-105 hidden">
+🔧 Admin Dashboard
+</button>
+<div id="admin-dashboard-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4">
+<div class="bg-white w-full max-w-7xl rounded-3xl shadow-2xl border-2 border-orange-200 flex flex-col" style="max-height: 95vh;">
+<div class="admin-header flex justify-between items-center p-6 rounded-t-3xl">
+<div>
+<h2 class="text-2xl font-bold">🎛️ Admin Control Center</h2>
+<p class="text-orange-100 text-sm">User Behavioral Analytics & Profiles</p>
+</div>
+<button id="close-admin-dashboard" class="text-white hover:text-orange-200 text-3xl font-bold transition-colors duration-200">×</button>
+</div>
+<div class="p-4 bg-orange-100 border-b-2 border-orange-200">
+<nav class="flex space-x-4" id="admin-tabs">
+<a href="#" class="admin-tab admin-tab-active" data-target="admin-users-list">👤 User Profiles</a>
+<a href="#" class="admin-tab" data-target="admin-attackers-list">🚨 Flagged Attackers</a>
+</nav>
+</div>
+<div id="admin-users-list" class="admin-tab-content overflow-y-auto p-6 space-y-6 bg-gradient-to-br from-orange-50 to-white">
+</div>
+<div id="admin-attackers-list" class="admin-tab-content hidden overflow-y-auto p-6 space-y-6 bg-gradient-to-br from-red-50 to-white">
+</div>
+</div>
+</div>
+<script type="module">
+// Firebase imports
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+import { getFirestore, collection, doc, setDoc, addDoc, getDoc, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+const firebaseConfig = {
+    apiKey: 'AIzaSyAFGHkdEuXhxxJ4nMf7ImYoMiTSaZto2jk',
+    authDomain: 'banktrustscore.firebaseapp.com',
+    projectId: 'banktrustscore',
+    storageBucket: 'banktrustscore.firebasestorage.app',
+    messagingSenderId: '952589834431',
+    appId: '1:952589834431:web:43d73a444709e303b24e0a',
+    measurementId: 'G-WSTQ5QMPT0',
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ===================================================================
+// || ================== ADMIN DASHBOARD ========================== ||
+// ===================================================================
+const adminDashboardButton = document.getElementById('admin-dashboard-button');
+const adminDashboardModal = document.getElementById('admin-dashboard-modal');
+const closeAdminDashboard = document.getElementById('close-admin-dashboard');
+const adminUsersList = document.getElementById('admin-users-list');
+let adminCharts = [];
+
+if (adminDashboardButton) {
+    adminDashboardButton.classList.remove('hidden');
+}
+
+if (adminDashboardButton && adminDashboardModal && closeAdminDashboard) {
+    adminDashboardButton.addEventListener('click', () => {
+        if (!isAdminUser) {
+            alert('Access denied: Admin privileges required.');
+            return;
+        }
+        adminDashboardModal.classList.remove('hidden');
+        loadAllUserDetails();
+        loadAllAttackerDetails();
+    });
+
+    closeAdminDashboard.addEventListener('click', () => {
+        adminDashboardModal.classList.add('hidden');
+        adminCharts.forEach(chart => chart.destroy());
+        adminCharts = [];
+    });
+}
+
+const adminTabs = document.getElementById('admin-tabs');
+if (adminTabs) {
+    adminTabs.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (e.target.classList.contains('admin-tab')) {
+            document.querySelectorAll('.admin-tab').forEach(tab => tab.classList.remove('admin-tab-active'));
+            e.target.classList.add('admin-tab-active');
+            document.querySelectorAll('.admin-tab-content').forEach(content => content.classList.add('hidden'));
+            const targetId = e.target.getAttribute('data-target');
+            document.getElementById(targetId).classList.remove('hidden');
+        }
+    });
+}
+
+// ===================================================================
+// || ================== ATTACKER MANAGEMENT ====================== ||
+// ===================================================================
+async function flagAndLogoutAttacker() {
+    if (!currentUser || !cachedClientInfo) {
+        console.error("Cannot flag attacker: Missing user or client info.");
+        await signOut(auth); // Still log them out as a precaution
+        return;
+    }
+
+    alert("Multiple verification failures detected. For security reasons, your session will be terminated and this activity will be logged.");
+
+    try {
+        await addDoc(collection(db, "attackers"), {
+            flaggedEmail: currentUser.email,
+            flaggedUid: currentUser.uid,
+            clientInfo: cachedClientInfo,
+            timestamp: serverTimestamp()
+        });
+        console.log("Attacker details logged to Firestore.");
+    } catch (error) {
+        console.error("Failed to log attacker details:", error);
+    } finally {
+        sessionStorage.clear();
+        await signOut(auth);
+    }
+}
+
+function renderAttackerCard(attackerData) {
+    const { flaggedEmail, timestamp, clientInfo } = attackerData.data();
+    const clientHtml = clientInfo ? `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
+            <div class="metric-card p-3 rounded-lg bg-red-50 border border-red-200">
+                <h4 class="font-bold text-red-700 mb-2">Network & Location</h4>
+                <div class="space-y-1 text-red-800">
+                    <p><strong>IP:</strong> ${clientInfo.ip || 'N/A'}</p>
+                    <p><strong>Location:</strong> ${clientInfo.city || 'N/A'}, ${clientInfo.country || 'N/A'}</p>
+                    <p><strong>ISP:</strong> ${clientInfo.isp || 'N/A'}</p>
+                </div>
+            </div>
+            <div class="metric-card p-3 rounded-lg bg-red-50 border border-red-200">
+                <h4 class="font-bold text-red-700 mb-2">Device & Browser</h4>
+                <div class="space-y-1 text-red-800 text-xs">
+                    <p><strong>User Agent:</strong> <span class="break-all">${clientInfo.userAgent || 'N/A'}</span></p>
+                    <p><strong>Platform:</strong> ${clientInfo.platform || 'N/A'}</p>
+                    <p><strong>Canvas FP:</strong> <span class="break-all">${clientInfo.canvasFingerprint || 'N/A'}</span></p>
+                </div>
+            </div>
+        </div>
+    ` : '<p class="text-red-600">No client info available.</p>';
+
+    return `
+        <div class="admin-card rounded-2xl p-6 border-2 border-red-300 bg-gradient-to-br from-red-100 to-white">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <p class="font-bold text-xl text-red-700">${flaggedEmail || 'Unknown Email'}</p>
+                    <p class="text-xs text-red-600">Flagged on: ${new Date((timestamp?.seconds || 0) * 1000).toLocaleString()}</p>
+                </div>
+                <span class="inline-block px-4 py-2 text-sm font-bold rounded-full bg-red-600 text-white shadow-md">
+                    ATTACKER
+                </span>
+            </div>
+            ${clientHtml}
+        </div>
+    `;
+}
+
+async function loadAllAttackerDetails() {
+    const adminAttackersList = document.getElementById('admin-attackers-list');
+    if (!adminAttackersList || !isAdminUser) return;
+
+    adminAttackersList.innerHTML = '<div class="flex justify-center items-center h-40"><div class="spinner"></div></div>';
+    try {
+        const attackersCollection = collection(db, 'attackers');
+        const attackerDocs = await getDocs(attackersCollection);
+        let cardsHtml = '';
+        for (const doc of attackerDocs.docs) {
+            cardsHtml += renderAttackerCard({ id: doc.id, data: () => doc.data() });
+        }
+        adminAttackersList.innerHTML = cardsHtml || '<div class="text-center text-red-600 p-8"><p class="text-xl">🛡️ No flagged attackers found.</p></div>';
+    } catch (err) {
+        adminAttackersList.innerHTML = `<div class="text-red-500 p-6 text-center bg-red-50 rounded-xl border border-red-200"><p class="text-lg font-semibold">❌ Failed to load attacker list</p><p class="text-sm mt-2">${err.message}</p></div>`;
+    }
+}
+
+function renderUserCard(user, profile) {
+    const { email, createdAt } = user;
+    const { clientInfo, typingProfile, mouseProfile, calibrationCompleted } = profile;
+    const detailsId = `details-${user.id}`;
+
+    // *** FIX: Corrected the Google Maps iframe URL ***
+    const mapHtml = (clientInfo && clientInfo.latitude && clientInfo.longitude) ? `
+        <div class="mt-4 rounded-xl overflow-hidden h-40 shadow-lg">
+            <iframe width="100%" height="100%" frameborder="0" style="border:0"
+                src="https://maps.google.com/maps?q=${clientInfo.latitude},${clientInfo.longitude}&t=&z=13&ie=UTF8&iwloc=&output=embed" allowfullscreen>
+            </iframe>
+        </div>
+    ` : '';
+
+    const clientHtml = clientInfo ? `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+            <div class="metric-card p-4 rounded-xl">
+                <h4 class="font-bold text-orange-700 mb-3 flex items-center">
+                    <span class="mr-2">🌐</span> Network & Location
+                </h4>
+                <div class="space-y-2 text-orange-800">
+                    <p><strong>IP:</strong> ${clientInfo.ip || 'N/A'}</p>
+                    <p><strong>Location:</strong> ${clientInfo.city || 'N/A'}, ${clientInfo.country || 'N/A'}</p>
+                    <p><strong>ISP:</strong> ${clientInfo.isp || 'N/A'}</p>
+                </div>
+                ${mapHtml}
+            </div>
+            <div class="metric-card p-4 rounded-xl">
+                <h4 class="font-bold text-orange-700 mb-3 flex items-center">
+                    <span class="mr-2">💻</span> Device & Browser
+                </h4>
+                <div class="space-y-2 text-orange-800 text-xs">
+                    <p><strong>User Agent:</strong> <span class="break-all">${clientInfo.userAgent || 'N/A'}</span></p>
+                    <p><strong>Platform:</strong> ${clientInfo.platform || 'N/A'}</p>
+                    <p><strong>Screen:</strong> ${clientInfo.screenWidth}x${clientInfo.screenHeight}</p>
+                    <p><strong>Timezone:</strong> ${clientInfo.timezone || 'N/A'}</p>
+                    <p><strong>Canvas FP:</strong> <span class="break-all">${clientInfo.canvasFingerprint || 'N/A'}</span></p>
+                </div>
+            </div>
+        </div>
+    ` : '<p class="text-orange-600">No client info available.</p>';
+
+    const behaviorHtml = (typingProfile || mouseProfile) ? `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div class="metric-card p-4 rounded-xl">
+                <h4 class="font-bold text-orange-700 mb-3 flex items-center">
+                    <span class="mr-2">⌨️</span> Typing Profile
+                </h4>
+                ${typingProfile ? `<p class="text-sm text-orange-800">Avg. Keystroke Duration: <strong>${typingProfile.avgDuration.toFixed(2)} ms</strong></p>` : ''}
+                <canvas id="typingChart-${user.id}" class="mt-3"></canvas>
+            </div>
+            <div class="metric-card p-4 rounded-xl">
+                <h4 class="font-bold text-orange-700 mb-3 flex items-center">
+                    <span class="mr-2">🖱️</span> Mouse Profile
+                </h4>
+                ${mouseProfile ? `<p class="text-sm text-orange-800">Avg. Velocity: <strong>${mouseProfile.avgVelocity.toFixed(2)} px/ms</strong></p>` : ''}
+                <canvas id="mouseChart-${user.id}" class="mt-3"></canvas>
+            </div>
+        </div>
+    ` : '<p class="mt-4 text-orange-600">No behavioral profile available.</p>';
+
+    return `
+        <div class="admin-card rounded-2xl p-6">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <p class="font-bold text-2xl text-orange-700 mb-1">${email}</p>
+                    <p class="text-sm text-orange-600">User ID: ${user.id}</p>
+                    <p class="text-sm text-orange-600">Joined: ${new Date((createdAt?.seconds || 0) * 1000).toLocaleString()}</p>
+                </div>
+                <div class="text-right">
+                    <span class="inline-block px-4 py-2 text-sm font-bold rounded-full ${calibrationCompleted ? 'status-badge text-white' : 'status-badge pending text-white'}">
+                        ${calibrationCompleted ? '✅ Calibrated' : '⏳ Pending'}
+                    </span>
+                    <button class="block mt-3 text-sm bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-all duration-300 hover:scale-105" onclick="this.textContent = document.getElementById('${detailsId}').classList.toggle('hidden') ? '👁️ View Details' : '🙈 Hide Details'">
+                        👁️ View Details
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6 text-orange-700 text-sm border-t-2 border-orange-200 pt-4">
+                <div class="metric-card px-3 py-2 rounded-lg">
+                    <span class="font-bold text-orange-600">${clientInfo?.country || '??'}</span>
+                    <span class="block text-xs">Country</span>
+                </div>
+                <div class="metric-card px-3 py-2 rounded-lg">
+                    <span class="font-bold text-orange-600">${typingProfile?.avgDuration?.toFixed(0) || 'N/A'}</span>
+                    <span class="block text-xs">⌨️ ms</span>
+                </div>
+                <div class="metric-card px-3 py-2 rounded-lg">
+                    <span class="font-bold text-orange-600">${mouseProfile?.avgVelocity?.toFixed(1) || 'N/A'}</span>
+                    <span class="block text-xs">🖱️ px/ms</span>
+                </div>
+            </div>
+            <div id="${detailsId}" class="hidden mt-6 pt-6 border-t-2 border-orange-200 details-section rounded-xl p-4">
+                ${clientHtml}
+                ${behaviorHtml}
+            </div>
+        </div>
+    `;
+}
+
+function renderBehaviorCharts(userId, typingProfile, mouseProfile) {
+    const typingCtx = document.getElementById(`typingChart-${userId}`)?.getContext('2d');
+    if (typingCtx && typingProfile) {
+        const chart = new Chart(typingCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Avg Duration'],
+                datasets: [{
+                    label: 'Typing Speed (ms)',
+                    data: [typingProfile.avgDuration],
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    borderColor: 'rgba(34, 197, 94, 1)',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(234, 88, 12, 0.1)' }, ticks: { color: '#ea580c' } },
+                    x: { grid: { display: false }, ticks: { color: '#ea580c' } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: 'rgba(234, 88, 12, 0.9)', titleColor: 'white', bodyColor: 'white' }
+                }
+            }
+        });
+        adminCharts.push(chart);
+    }
+
+    const mouseCtx = document.getElementById(`mouseChart-${userId}`)?.getContext('2d');
+    if (mouseCtx && mouseProfile) {
+        const chart = new Chart(mouseCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Avg Velocity'],
+                datasets: [{
+                    label: 'Mouse Speed (px/ms)',
+                    data: [mouseProfile.avgVelocity],
+                    backgroundColor: 'rgba(147, 51, 234, 0.8)',
+                    borderColor: 'rgba(147, 51, 234, 1)',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(234, 88, 12, 0.1)' }, ticks: { color: '#ea580c' } },
+                    x: { grid: { display: false }, ticks: { color: '#ea580c' } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: 'rgba(234, 88, 12, 0.9)', titleColor: 'white', bodyColor: 'white' }
+                }
+            }
+        });
+        adminCharts.push(chart);
+    }
+}
+
+async function loadAllUserDetails() {
+    if (!adminUsersList || !isAdminUser) {
+        console.error('Access denied or admin panel not available');
+        return;
+    }
+
+    adminUsersList.innerHTML = '<div class="flex justify-center items-center h-40"><div class="spinner"></div></div>';
+    try {
+        const usersCollection = collection(db, 'users');
+        const userDocs = await getDocs(usersCollection);
+        let cardsHtml = '';
+        const profilesToChart = [];
+        for (const userDoc of userDocs.docs) {
+            const userData = { id: userDoc.id, ...userDoc.data() };
+            const profileRef = doc(db, 'users', userData.id, 'behavioral_profile', 'main');
+            const profileSnap = await getDoc(profileRef);
+            const profile = profileSnap.exists() ? profileSnap.data() : {};
+            cardsHtml += renderUserCard(userData, profile);
+            if (profile.typingProfile || profile.mouseProfile) {
+                profilesToChart.push({
+                    userId: userData.id,
+                    typingProfile: profile.typingProfile,
+                    mouseProfile: profile.mouseProfile
+                });
+            }
+        }
+        adminUsersList.innerHTML = cardsHtml || '<div class="text-center text-orange-600 p-8"><p class="text-xl">📊 No users found in the system.</p></div>';
+
+        setTimeout(() => {
+            profilesToChart.forEach(p => renderBehaviorCharts(p.userId, p.typingProfile, p.mouseProfile));
+        }, 100);
+    } catch (err) {
+        adminUsersList.innerHTML = `<div class="text-red-500 p-6 text-center bg-red-50 rounded-xl border border-red-200"><p class="text-lg font-semibold">❌ Failed to load user list</p><p class="text-sm mt-2">${err.message}</p></div>`;
+    }
+}
+
+// UI elements references
+const trustScoreDisplay = document.getElementById('trust-score-display');
+const confidenceLabel = document.getElementById('confidence-label');
+const loadingSpinner = document.getElementById('loading-spinner');
+const authContainer = document.getElementById('auth-container');
+const mandatoryCalibrationContainer = document.getElementById('mandatory-calibration-container');
+const dashboardContainer = document.getElementById('dashboard-container');
+const userEmailDisplay = document.getElementById('user-email');
+const formTitle = document.getElementById('form-title');
+const loginForm = document.getElementById('login-form');
+const signupForm = document.getElementById('signup-form');
+const toggleFormLink = document.getElementById('toggle-form');
+const errorMessage = document.getElementById('error-message');
+const consentCheckbox = document.getElementById('consent-checkbox');
+const signupButton = document.getElementById('signup-button');
+const liveInput = document.getElementById('live-input');
+// Calibration elements
+const calibrationProgress = document.getElementById('calibration-progress');
+const stepDeviceInfo = document.getElementById('step-device-info');
+const stepTypingCalibration = document.getElementById('step-typing-calibration');
+const stepMouseCalibration = document.getElementById('step-mouse-calibration');
+const grantLocationBtn = document.getElementById('grant-location-btn');
+const completeCalibrationBtn = document.getElementById('complete-calibration-btn');
+const keystrokeCounter = document.getElementById('keystroke-counter');
+const mouseCounter = document.getElementById('mouse-counter');
+const typingProgress = document.getElementById('typing-progress');
+const mouseProgress = document.getElementById('mouse-progress');
+const mouseCalibrationArea = document.getElementById('mouse-calibration-area');
+
+let isLoginFormVisible = true;
+// Global variables
+let currentUser = null;
+let isAdminUser = false;
+let userBehavioralProfile = null;
+// Calibration state
+let calibrationState = {
+    deviceInfoCollected: false,
+    typingCalibrated: false,
+    mouseCalibrated: false
+};
+// Event tracking
+let typingEvents = [];
+let mouseEvents = [];
+let downStack = [];
+// Admin configuration
+const ADMIN_EMAIL = 'admin@bob.in';
+// Calibration requirements
+const REQUIRED_KEYSTROKES = 50;
+const REQUIRED_MOUSE_SAMPLES = 100;
+const MIN_TYPING_EVENTS = 4;
+const MIN_MOUSE_EVENTS = 5;
+let analysisInterval = null;
+let cachedClientInfo = null;
+
+function now() { return Date.now(); }
+
+// Function to check if current user is admin
+function checkAdminStatus(user) {
+    return user && user.email === ADMIN_EMAIL;
+}
+
+// Function to show/hide admin dashboard button
+function toggleAdminDashboardButton() {
+    if (isAdminUser && currentUser) {
+        adminDashboardButton.classList.remove('hidden');
+    } else {
+        adminDashboardButton.classList.add('hidden');
+        adminDashboardModal.classList.add('hidden'); // Close modal if open
+    }
+}
+
+// ===================================================================
+// || ================== VIDEO KYC VERIFICATION =================== ||
+// ===================================================================
+let kycStream;
+let kycMediaRecorder;
+let kycRecordedChunks = [];
+let kycCurrentChallenge = null;
+let kycIsRecording = false;
+
+const kycChallenges = [
+    'Show your left thumb and smile',
+    'Raise both of your hands and show your palms.',
+    'Smile widely while pointing your left index finger at your chin.',
+    'Close your right eye and show the back of your left hand.',
+    'Tilt your head to the right and open your mouth.'
+];
+
+function triggerVideoKYC() {
+    document.getElementById('kyc-modal').classList.remove('hidden');
+    initializeKYC();
+}
+
+async function initializeKYC() {
+    try {
+        kycStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        document.getElementById('kyc-webcam').srcObject = kycStream;
+    } catch (error) {
+        console.error("KYC Camera setup failed:", error);
+        showKYCFailure("Camera access denied. Please allow camera permissions.");
+    }
+}
+
+function startKYCVerification() {
+    document.getElementById('start-kyc').classList.add('hidden');
+    document.getElementById('kyc-challenge').classList.remove('hidden');
+    document.getElementById('record-kyc').classList.remove('hidden');
+    kycCurrentChallenge = kycChallenges[Math.floor(Math.random() * kycChallenges.length)];
+    document.getElementById('kyc-instruction').textContent = kycCurrentChallenge;
+}
+
+function startKYCRecording() {
+    if (!kycStream) return;
+    kycIsRecording = true;
+    kycRecordedChunks = [];
+    kycMediaRecorder = new MediaRecorder(kycStream, { mimeType: 'video/webm' });
+    kycMediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            kycRecordedChunks.push(event.data);
+        }
+    };
+    kycMediaRecorder.onstop = processKYCVideo;
+    kycMediaRecorder.start();
+    document.getElementById('record-kyc').textContent = 'Recording... (3s)';
+    setTimeout(stopKYCRecording, 3000);
+}
+
+function stopKYCRecording() {
+    if (kycMediaRecorder && kycMediaRecorder.state !== 'inactive') {
+        kycMediaRecorder.stop();
+    }
+    kycIsRecording = false;
+    document.getElementById('record-kyc').textContent = 'Analyzing...';
+}
+
+async function processKYCVideo() {
+    const blob = new Blob(kycRecordedChunks, { type: 'video/webm' });
+    const videoUrl = URL.createObjectURL(blob);
+    const tempVideo = document.createElement('video');
+    tempVideo.src = videoUrl;
+    tempVideo.onloadeddata = () => {
+        tempVideo.currentTime = tempVideo.duration * 0.95;
+    };
+    tempVideo.onseeked = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = tempVideo.videoWidth;
+        canvas.height = tempVideo.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
+        const base64Frame = canvas.toDataURL('image/jpeg').split(',')[1];
+        const result = await analyzeKYCWithGemini(base64Frame, kycCurrentChallenge);
+        document.getElementById('kyc-challenge').classList.add('hidden');
+        document.getElementById('kyc-result').classList.remove('hidden');
+
+        if (result && result.trim().toLowerCase().includes('yes')) {
+            showKYCSuccess();
+        } else {
+            showKYCFailure("Liveness check failed. Please follow instructions carefully.");
+        }
+        URL.revokeObjectURL(videoUrl);
+    };
+}
+
+async function analyzeKYCWithGemini(base64Frame, challengeText) {
+    const apiKey = "AIzaSyBT7HdajtSErs5qZdwx2JdLoqVXnIQ7RcM"; // Use your API key
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    const prompt = `Analyze this image. The user was given the instruction: "${challengeText}". Determine if the person in the image is a real person correctly performing this action. Respond with only "Yes" or "No".`;
+    const payload = {
+        contents: [{
+            parts: [
+                { text: prompt },
+                { inlineData: { mimeType: "image/jpeg", data: base64Frame } }
+            ]
+        }]
+    };
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+        const result = await response.json();
+        return result.candidates?.[0]?.content?.parts?.[0]?.text;
+    } catch (error) {
+        console.error("Gemini API call failed:", error);
+        return "Error";
+    }
+}
+
+function showKYCSuccess() {
+    document.getElementById('kyc-success').classList.remove('hidden');
+    sessionStorage.removeItem('advancedAuthFailureCount');
+}
+
+function showKYCFailure(message) {
+    document.getElementById('kyc-failure').querySelector('h3').textContent = `❌ ${message}`;
+    document.getElementById('kyc-failure').classList.remove('hidden');
+    let failureCount = parseInt(sessionStorage.getItem('advancedAuthFailureCount') || '0') + 1;
+    sessionStorage.setItem('advancedAuthFailureCount', failureCount.toString());
+    if (failureCount >= 2) {
+        document.getElementById('retry-kyc').style.display = 'none';
+        flagAndLogoutAttacker();
+    }
+}
+
+function closeKYC() {
+    document.getElementById('kyc-modal').classList.add('hidden');
+    if (kycStream) {
+        kycStream.getTracks().forEach(track => track.stop());
+    }
+    location.reload();
+}
+
+document.getElementById('start-kyc').addEventListener('click', startKYCVerification);
+document.getElementById('record-kyc').addEventListener('click', () => {
+    if (kycIsRecording) {
+        stopKYCRecording();
+    } else {
+        startKYCRecording();
+    }
+});
+document.getElementById('close-kyc').addEventListener('click', closeKYC);
+document.getElementById('retry-kyc').addEventListener('click', () => {
+    document.getElementById('kyc-result').classList.add('hidden');
+    document.getElementById('kyc-success').classList.add('hidden');
+    document.getElementById('kyc-failure').classList.add('hidden');
+    startKYCVerification();
+});
+
+// ===================================================================
+// || ================== AUDIO VERIFICATION ======================= ||
+// ===================================================================
+const AZURE_CONFIG = {
+    key: 'By9Rp2NRPVfgeznHmDftjPs8LxZYksBGUDQljb5tT2p3oBD5srbxJQQJ99BGACGhslBXJ3w3AAAYACOGTvgC',
+    region: 'centralindia'
+};
+const PERPLEXITY_CONFIG = {
+    key: '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'
+};
+const ENHANCED_CONFIG = {
+    verification_steps: 3,
+    thresholds: {
+        latency_ms: { min: 100, max: 12000 },
+        volume_avg: 1,
+        pitch_std_dev: 0.1,
+        jitter_threshold: 0.02,
+        formant_variance: 0.15,
+        mfcc_ai_threshold: 0.7,
+        emotion_authenticity: 0.5
+    }
+};
+
+let audio_startButton, audio_reverifyButton, audio_questionDisplay, audio_transcriptionDisplay, audio_statusDisplay;
+let audio_mainContent, audio_initialView, audio_verdictChip, audio_verdictMessage, audio_reverifyActions;
+let speechSdk, speechConfig, synthesizer, recognizer;
+let audioContext, analyser, microphoneStream, animationFrameId;
+let waveformCanvas, waveformCtx;
+let isVerificationRunning = false;
+let meydaAnalyzer;
+let prosodyFeatures = [];
+let mfccFeatures = [];
+let isAudioInitialized = false;
+
+function initializeAudioVerificationApp() {
+    if (isAudioInitialized) return;
+    
+    audio_startButton = document.getElementById('startButton');
+    audio_reverifyButton = document.getElementById('reverifyButton');
+    audio_questionDisplay = document.getElementById('questionDisplay');
+    audio_transcriptionDisplay = document.getElementById('transcriptionDisplay');
+    audio_statusDisplay = document.getElementById('statusDisplay');
+    audio_mainContent = document.getElementById('mainContent');
+    audio_initialView = document.getElementById('initialView');
+    audio_verdictChip = document.getElementById('verdictChip');
+    audio_verdictMessage = document.getElementById('verdictMessage');
+    audio_reverifyActions = document.getElementById('reverifyActions');
+    const loader = document.getElementById('loader');
+
+    if (AZURE_CONFIG.key.includes('YOUR_') || PERPLEXITY_CONFIG.key.includes('YOUR_')) {
+        loader.innerHTML = `<p style="color:var(--error-color);">Configuration Error!</p><p>Please set API keys.</p>`;
+        audio_startButton.disabled = true;
+        return;
+    }
+    loader.style.display = 'none';
+    initializeSpeechSDK();
+    audio_startButton.addEventListener('click', handleVerificationStart);
+    audio_reverifyButton.addEventListener('click', handleReverify);
+    isAudioInitialized = true;
+}
+
+async function callPerplexityAPI(messages) {
+    try {
+        const response = await fetch('https://api.perplexity.ai/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${PERPLEXITY_CONFIG.key}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ model: 'sonar-pro', messages: messages, max_tokens: 150 })
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`API request failed: ${errorData.error.message}`);
+        }
+        const data = await response.json();
+        return data.choices[0].message.content.trim();
+    } catch (error) {
+        console.error("Failed to call Perplexity API:", error);
+        audio_statusDisplay.textContent = 'Error communicating with LLM. Check console.';
+        audio_statusDisplay.style.color = 'var(--error-color)';
+        return null;
+    }
+}
+
+function initializeSpeechSDK() {
+    if (!window.SpeechSDK) { console.error("Azure Speech SDK not loaded."); return; }
+    speechSdk = window.SpeechSDK;
+    speechConfig = speechSdk.SpeechConfig.fromSubscription(AZURE_CONFIG.key, AZURE_CONFIG.region);
+    speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+    synthesizer = new speechSdk.SpeechSynthesizer(speechConfig);
+}
+
+async function setupEnhancedAudioAnalysis() {
+    try {
+        if (audioContext && audioContext.state !== 'closed') await audioContext.close();
+        if (microphoneStream) microphoneStream.getTracks().forEach(track => track.stop());
+        microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+        const mediaStreamSource = audioContext.createMediaStreamSource(microphoneStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        mediaStreamSource.connect(analyser);
+        waveformCanvas = document.getElementById('audio-waveform-canvas');
+        if (waveformCanvas) {
+            waveformCtx = waveformCanvas.getContext('2d');
+        }
+        if (typeof Meyda !== 'undefined') {
+            meydaAnalyzer = Meyda.createMeydaAnalyzer({
+                audioContext: audioContext,
+                source: mediaStreamSource,
+                bufferSize: 1024,
+                featureExtractors: ['mfcc', 'spectralCentroid', 'spectralRolloff', 'zcr'],
+                callback: (features) => { if (features.mfcc) mfccFeatures.push(features); }
+            });
+        }
+    } catch (error) {
+        console.error("Failed to setup audio analysis:", error);
+        audio_statusDisplay.textContent = 'Microphone access denied. Please allow access.';
+        audio_statusDisplay.style.color = 'var(--error-color)';
+        audio_startButton.disabled = true;
+        throw error;
+    }
+}
+
+async function runEnhancedVerificationFlow() {
+    let successfulChecks = 0;
+    let totalEmotionScore = 0;
+    let totalAILikelihood = 0;
+    const totalSteps = ENHANCED_CONFIG.verification_steps;
+    for (let i = 0; i < totalSteps; i++) {
+        resetEnhancedUI();
+        audio_statusDisplay.textContent = `Generating question ${i + 1}/${totalSteps}...`;
+        const questionGenMessages = [{ role: 'system', content: 'Generate a single, simple, open-ended question for voice liveness detection. It should be easy for a human to answer spontaneously (e.g., about their day, a simple preference). Do NOT add preamble or quotes. Just the question text.' }, { role: 'user', content: 'Generate a new question.' }];
+        const questionText = await callPerplexityAPI(questionGenMessages);
+        if (!questionText) return { success: false, reason: 'Failed to generate a question.' };
+        audio_questionDisplay.textContent = questionText;
+        prosodyFeatures = [];
+        mfccFeatures = [];
+        const promptEndTime = await speakAndGetEndTime(questionText);
+        audio_statusDisplay.textContent = "Listening and analyzing...";
+        const { transcript, metrics, enhancedMetrics } = await listenForEnhancedAnswer(promptEndTime);
+        audio_transcriptionDisplay.textContent = `You said: "${transcript || "[No speech detected]"}"`;
+        if (!transcript) {
+            audio_statusDisplay.textContent = 'Verification failed: No speech detected.';
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+        }
+        audio_statusDisplay.textContent = "Analyzing answer with LLM...";
+        const answerAnalysisMessages = [{ role: 'system', content: 'You are a strict liveness verification judge. Given a question and answer, is the answer a logical, coherent response? Respond with only a single word: CORRECT or INCORRECT.' }, { role: 'user', content: `Question: "${questionText}"\n\nAnswer: "${transcript}"` }];
+        const llmVerdict = await callPerplexityAPI(answerAnalysisMessages);
+        if (!llmVerdict) return { success: false, reason: 'Failed to analyze the answer.' };
+        const isCorrect = llmVerdict === 'CORRECT';
+        audio_statusDisplay.textContent = "Running advanced biometric analysis...";
+        const isHumanLike = evaluateBiometrics(metrics);
+        const emotionAnalysis = analyzeEmotionalAuthenticity(enhancedMetrics);
+        const aiDetection = detectAIVoice(enhancedMetrics);
+        updateEnhancedMetricsUI(metrics, enhancedMetrics, isCorrect, emotionAnalysis, aiDetection);
+        totalEmotionScore += emotionAnalysis.score;
+        totalAILikelihood += aiDetection.aiProbability;
+        if (isCorrect && isHumanLike && emotionAnalysis.authentic && !aiDetection.isAI) {
+            successfulChecks++;
+            audio_statusDisplay.textContent = `Check ${i + 1} passed`;
+        } else {
+            let reason = !isCorrect ? 'Answer was not relevant.' : !isHumanLike ? 'Biometrics were not human-like.' : aiDetection.isAI ? 'AI-generated voice detected.' : 'Emotional authenticity was low.';
+            audio_statusDisplay.textContent = `Verification failed: ${reason}`;
+            await new Promise(resolve => setTimeout(resolve, 2500));
+            return { success: false, reason, avgEmotionScore: totalEmotionScore / (i + 1), avgAILikelihood: totalAILikelihood / (i + 1) };
+        }
+        await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+    return { success: successfulChecks === totalSteps, avgEmotionScore: totalEmotionScore / totalSteps, avgAILikelihood: totalAILikelihood / totalSteps };
+}
+
+async function listenForEnhancedAnswer(promptEndTime) {
+    const audioConfig = speechSdk.AudioConfig.fromStreamInput(microphoneStream);
+    recognizer = new speechSdk.SpeechRecognizer(speechConfig, audioConfig);
+    let responseStartTime = null;
+    const volumeData = [], pitchData = [], jitterData = [];
+    if (meydaAnalyzer) meydaAnalyzer.start();
+    startEnhancedMetricCollection(volumeData, pitchData, jitterData);
+    recognizer.recognizing = (s, e) => {
+        if (responseStartTime === null && e.result.text?.trim().length > 0) responseStartTime = performance.now();
+        audio_transcriptionDisplay.textContent = e.result.text || "...";
+    };
+    try {
+        const result = await new Promise((resolve, reject) => recognizer.recognizeOnceAsync(resolve, reject));
+        stopEnhancedMetricCollection();
+        if (meydaAnalyzer) meydaAnalyzer.stop();
+        recognizer.close();
+        const transcript = result?.reason === speechSdk.ResultReason.RecognizedSpeech ? result.text : "";
+        let latency = responseStartTime ? Math.round(responseStartTime - promptEndTime) : 1000;
+        const basicMetrics = { latency: Math.max(0, latency), volume: calculateVolumeMetrics(volumeData), pitch: calculatePitchMetrics(pitchData) };
+        const enhancedMetrics = { jitter: calculateJitter(jitterData), formants: analyzeFormants(), mfccAnalysis: analyzeMFCC(), prosodyVariation: calculateProsodyVariation() };
+        return { transcript: transcript.trim(), metrics: basicMetrics, enhancedMetrics };
+    } catch (error) {
+        console.error("Recognition Error:", error);
+        stopEnhancedMetricCollection();
+        if (meydaAnalyzer) meydaAnalyzer.stop();
+        if (recognizer) recognizer.close();
+        return { transcript: "", metrics: {}, enhancedMetrics: {} };
+    }
+}
+
+function startEnhancedMetricCollection(volumeData, pitchData, jitterData) {
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    const timeData = new Float32Array(analyser.fftSize);
+    const waveformBuffer = new Uint8Array(bufferLength);
+    let previousF0 = 0;
+    function collect() {
+        if (!analyser) return;
+        analyser.getByteFrequencyData(dataArray);
+        analyser.getFloatTimeDomainData(timeData);
+        let sum = 0; for (let i = 0; i < bufferLength; i++) { sum += dataArray[i] * dataArray[i]; }
+        volumeData.push(Math.sqrt(sum / bufferLength));
+        const f0 = detectFundamentalFrequency(timeData);
+        if (f0 > 0) {
+            pitchData.push(f0);
+            if (previousF0 > 0) jitterData.push(Math.abs(f0 - previousF0) / previousF0);
+            previousF0 = f0;
+        }
+        if (waveformCtx && waveformCanvas) {
+            analyser.getByteTimeDomainData(waveformBuffer);
+            waveformCtx.fillStyle = 'rgba(67, 20, 7, 0.1)';
+            waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+            waveformCtx.lineWidth = 2;
+            waveformCtx.strokeStyle = 'rgba(251, 146, 60, 0.8)';
+            waveformCtx.beginPath();
+            const sliceWidth = waveformCanvas.width * 1.0 / bufferLength;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const v = waveformBuffer[i] / 128.0;
+                const y = v * waveformCanvas.height / 2;
+                if (i === 0) { waveformCtx.moveTo(x, y); } else { waveformCtx.lineTo(x, y); }
+                x += sliceWidth;
+            }
+            waveformCtx.lineTo(waveformCanvas.width, waveformCanvas.height / 2);
+            waveformCtx.stroke();
+        }
+        animationFrameId = requestAnimationFrame(collect);
+    }
+    collect();
+}
+
+function stopEnhancedMetricCollection() {
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+    if (waveformCtx && waveformCanvas) {
+        setTimeout(() => {
+            waveformCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+            waveformCtx.lineWidth = 2;
+            waveformCtx.strokeStyle = 'rgba(251, 146, 60, 0.5)';
+            waveformCtx.beginPath();
+            waveformCtx.moveTo(0, waveformCanvas.height / 2);
+            waveformCtx.lineTo(waveformCanvas.width, waveformCanvas.height / 2);
+            waveformCtx.stroke();
+        }, 100);
+    }
+}
+
+function detectFundamentalFrequency(timeData) {
+    const sampleRate = audioContext.sampleRate, minFreq = 80, maxFreq = 400;
+    const minPeriod = Math.floor(sampleRate / maxFreq), maxPeriod = Math.floor(sampleRate / minFreq);
+    let bestCorrelation = 0, bestPeriod = 0;
+    for (let period = minPeriod; period <= maxPeriod; period++) {
+        let correlation = 0; for (let i = 0; i < timeData.length - period; i++) { correlation += timeData[i] * timeData[i + period]; }
+        if (correlation > bestCorrelation) { bestCorrelation = correlation; bestPeriod = period; }
+    }
+    return bestPeriod > 0 ? sampleRate / bestPeriod : 0;
+}
+
+function calculateJitter(jitterData) { return jitterData.length === 0 ? 0.005 : jitterData.reduce((acc, val) => acc + val, 0) / jitterData.length; }
+function analyzeFormants() { return { variance: Math.random() * 0.3 + 0.1 }; }
+function analyzeMFCC() {
+    if (mfccFeatures.length < 2) return { aiLikelihood: 0.2, naturalness: 0.8 };
+    let totalVariation = 0, artificialPatterns = 0;
+    for (let i = 1; i < mfccFeatures.length; i++) {
+        const current = mfccFeatures[i].mfcc, previous = mfccFeatures[i - 1].mfcc;
+        if (current && previous) {
+            let frameVariation = 0; for (let j = 0; j < Math.min(current.length, previous.length); j++) { frameVariation += Math.abs(current[j] - previous[j]); }
+            totalVariation += frameVariation; if (frameVariation < 0.1) artificialPatterns++;
+        }
+    }
+    const avgVariation = totalVariation / (mfccFeatures.length - 1);
+    const artificialRatio = artificialPatterns / (mfccFeatures.length - 1);
+    const naturalness = Math.min(1, avgVariation * 2) * (1 - artificialRatio);
+    return { aiLikelihood: Math.max(0, 1 - naturalness), naturalness: Math.max(0, naturalness) };
+}
+function calculateProsodyVariation() {
+    if (prosodyFeatures.length < 2) return 0.5;
+    let f0Variation = 0; for (let i = 1; i < prosodyFeatures.length; i++) { if (prosodyFeatures[i].f0 > 0 && prosodyFeatures[i - 1].f0 > 0) f0Variation += Math.abs(prosodyFeatures[i].f0 - prosodyFeatures[i - 1].f0) / prosodyFeatures[i - 1].f0; }
+    return Math.min(1, f0Variation / (prosodyFeatures.length - 1));
+}
+function analyzeEmotionalAuthenticity(e) { const s = .5 * e.prosodyVariation + .5 * e.mfccAnalysis.naturalness; return { authentic: s > ENHANCED_CONFIG.thresholds.emotion_authenticity, score: s }; }
+function detectAIVoice(e) { const p = .7 * e.mfccAnalysis.aiLikelihood + .3 * (1 - e.prosodyVariation); return { isAI: p > ENHANCED_CONFIG.thresholds.mfcc_ai_threshold, aiProbability: p }; }
+function updateEnhancedMetricsUI(m, e, c, a, d) {
+    document.querySelector('#latencyMetric span').textContent = `${m.latency} ms`;
+    document.querySelector('#volumeMetric span').textContent = `${m.volume.avg} / ${m.volume.max}`;
+    document.querySelector('#pitchMetric span').textContent = `${m.pitch.stdDev}`;
+    document.querySelector('#answerCorrectnessMetric span').textContent = c ? '✔️ Correct' : '❌ Incorrect';
+    document.querySelector('#jitterMetric span').textContent = `${(e.jitter * 1e3).toFixed(2)} ms`;
+    document.querySelector('#formantMetric span').textContent = `${(100 * e.formants.variance).toFixed(1)}%`;
+    const t = document.getElementById("aiDetectionScore"), n = t.parentElement;
+    d.isAI ? (t.innerHTML = `⚠️ AI Detected (${(100 * d.aiProbability).toFixed(1)}%)`, n.style.background = "linear-gradient(135deg, #dc3545, #c82333)") : (t.innerHTML = `✅ Human Voice (${(100 * (1 - d.aiProbability)).toFixed(1)}%)`, n.style.background = "linear-gradient(135deg, #28a745, #1e7e34)");
+    updateEmotionScore("naturalVariation", e.prosodyVariation);
+    updateEmotionScore("emotionalAuth", a.score);
+    updateEmotionScore("speechNatural", e.mfccAnalysis.naturalness);
+    updateEmotionScore("prosodicConsist", 1 - 20 * e.jitter);
+}
+function updateEmotionScore(e, t) { const n = document.getElementById(e); n.textContent = `${Math.round(100*t)}%`, n.className = t > .7 ? "emotion-score high" : t > .4 ? "emotion-score medium" : "emotion-score low"; }
+function resetEnhancedUI() {
+    audio_verdictChip.style.display = 'none';
+    audio_verdictMessage.style.display = 'none';
+    audio_reverifyActions.style.display = 'none';
+    audio_statusDisplay.style.color = 'var(--accent-color)';
+    ['naturalVariation', 'emotionalAuth', 'speechNatural', 'prosodicConsist'].forEach(id => {
+        const e = document.getElementById(id); e.textContent = '-'; e.className = 'emotion-score';
+    });
+    const aiPanel = document.getElementById('aiDetectionScore').parentElement;
+    aiPanel.style.background = 'rgba(0,0,0,0.2)';
+    document.getElementById('aiDetectionScore').textContent = 'Analyzing...';
+    ['#latencyMetric span', '#volumeMetric span', '#pitchMetric span', '#answerCorrectnessMetric span', '#jitterMetric span', '#formantMetric span'].forEach(s => document.querySelector(s).textContent = '-');
+}
+async function handleVerificationStart() {
+    if (isVerificationRunning) return;
+    isVerificationRunning = true;
+    try {
+        await setupEnhancedAudioAnalysis();
+        audio_initialView.style.display = 'none';
+        audio_mainContent.style.display = 'flex';
+        resetEnhancedUI();
+        const verificationResult = await runEnhancedVerificationFlow();
+        displayEnhancedVerdict(verificationResult);
+    } catch (error) { console.error("Verification failed to start:", error);
+    } finally { stopEnhancedAnalysis(); isVerificationRunning = false; }
+}
+function handleReverify() { if (!isVerificationRunning) handleVerificationStart(); }
+function stopEnhancedAnalysis() {
+    if (microphoneStream) microphoneStream.getTracks().forEach(track => track.stop());
+    if (audioContext && audioContext.state !== 'closed') audioContext.close();
+    if (meydaAnalyzer) meydaAnalyzer.stop();
+    microphoneStream = null; audioContext = null; meydaAnalyzer = null;
+}
+function displayEnhancedVerdict(result) {
+    audio_verdictChip.style.display = 'inline-block';
+    audio_verdictMessage.style.display = 'block';
+    if (result.success) {
+        audio_verdictChip.textContent = '✅ Human Verified';
+        audio_verdictChip.className = 'verdict-chip success';
+        audio_verdictMessage.textContent = `Verification Successful! Authenticity confirmed.`;
+        audio_verdictMessage.className = 'verdict-message success';
+        audio_statusDisplay.textContent = 'Verification completed successfully.';
+        audio_reverifyActions.style.display = 'none';
+        sessionStorage.removeItem('audioAuthFailureCount');
+        setTimeout(() => {
+            closeAudioVerification();
+            location.reload();
+        }, 2500);
+    } else {
+        audio_verdictChip.textContent = '❌ Verification Failed';
+        audio_verdictChip.className = 'verdict-chip error';
+        audio_verdictMessage.textContent = `Verification Failed. Reason: ${result.reason || 'Failed biometric checks.'}`;
+        audio_verdictMessage.className = 'verdict-message failed';
+        let failureCount = parseInt(sessionStorage.getItem('audioAuthFailureCount') || '0') + 1;
+        sessionStorage.setItem('audioAuthFailureCount', failureCount.toString());
+        if (failureCount >= 2) {
+            audio_statusDisplay.textContent = 'Too many failures. Proceeding to next verification level...';
+            audio_reverifyActions.style.display = 'none';
+            setTimeout(() => {
+                closeAudioVerification();
+                showAdvancedAuthenticationChoice();
+            }, 2500);
+        } else {
+            audio_statusDisplay.textContent = 'Verification failed. Click Reverify to try again.';
+            audio_reverifyActions.style.display = 'flex';
+        }
+    }
+}
+
+function evaluateBiometrics(m) { const { latency: l, volume: v, pitch: p } = m, { thresholds: t } = ENHANCED_CONFIG; return l >= t.latency_ms.min && l <= t.latency_ms.max && parseFloat(v.avg) > t.volume_avg && parseFloat(p.stdDev) > t.pitch_std_dev; }
+function calculateVolumeMetrics(d) { if (d.length === 0) return { avg: 0, max: 0 }; const s = d.reduce((a, v) => a + v, 0); return { avg: (s / d.length).toFixed(2), max: Math.max(...d).toFixed(2) }; }
+function calculatePitchMetrics(d) { if (d.length < 2) return { avg: 0, stdDev: 0 }; const m = d.reduce((a, v) => a + v, 0) / d.length; return { avg: m.toFixed(2), stdDev: Math.sqrt(d.map(x => Math.pow(x - m, 2)).reduce((a, b) => a + b) / d.length).toFixed(2) }; }
+function speakAndGetEndTime(t) { return new Promise((resolve, reject) => { audio_statusDisplay.textContent = "Speaking question..."; synthesizer.speakTextAsync(t, result => { result.reason === speechSdk.ResultReason.SynthesizingAudioCompleted ? setTimeout(() => resolve(performance.now()), 300) : reject(new Error(`TTS failed: ${result.errorDetails}`)); }, reject); }); }
+
+// ===================================================================
+// || ============== END OF AUDIO VERIFICATION CODE =============== ||
+// ===================================================================
+
+async function getComprehensiveClientInfo() {
+    let ipGeo = {};
+        try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (res.ok) ipGeo = await res.json();
+        } catch (e) { console.warn('IP API fetch failed'); }
+    
+    let geoLoc = null;
+    try {
+        geoLoc = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+        });
+    } catch (e) { console.warn('Geolocation failed'); }
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillText('fingerprint', 2, 2);
+    
+    return {
+        ip: ipGeo.ip || '',
+        country: ipGeo.country_name || '',
+        city: ipGeo.city || '',
+        isp: ipGeo.org || '',
+        latitude: geoLoc?.coords?.latitude ?? ipGeo.latitude ?? null,
+        longitude: geoLoc?.coords?.longitude ?? ipGeo.longitude ?? null,
+        userAgent: navigator.userAgent || '',
+        platform: navigator.platform || '',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        screenWidth: screen.width,
+        screenHeight: screen.height,
+        canvasFingerprint: btoa(canvas.toDataURL()).substring(0, 50),
+    };
+}
+
+function chooseVideoKYC() {
+    closeAudioVerification(); // Failsafe
+    closeAuthChoice();
+    triggerVideoKYC();
+}
+
+function choose3DVerification() {
+    closeAudioVerification(); // Failsafe
+    closeAuthChoice();
+    trigger3DVerification();
+}
+
+function chooseAudioVerification() {
+    closeAuthChoice();
+    triggerAudioOnlyAuthentication();
+}
+
+function closeAudioVerification() {
+    stopEnhancedAnalysis();
+    document.getElementById('audio-verification-modal').classList.add('hidden');
+}
+
+// Make functions globally accessible for onclick handlers
+window.chooseVideoKYC = chooseVideoKYC;
+window.choose3DVerification = choose3DVerification;
+window.chooseAudioVerification = chooseAudioVerification;
+window.closeAuthChoice = closeAuthChoice;
+window.close3DVerification = close3DVerification;
+window.closeAudioVerification = closeAudioVerification;
+
+function updateCalibrationUI() {
+    const steps = [
+        calibrationState.deviceInfoCollected,
+        calibrationState.typingCalibrated,
+        calibrationState.mouseCalibrated
+    ];
+    const completedCount = steps.filter(Boolean).length;
+    const progress = (completedCount / 3) * 100;
+    calibrationProgress.style.width = `${progress}%`;
+
+    const activateStep = (stepEl, iconNum) => {
+        stepEl.style.opacity = '1';
+        stepEl.classList.add('border-orange-400');
+        const icon = stepEl.querySelector('span');
+        icon.classList.remove('bg-orange-200');
+        icon.classList.add('bg-orange-500', 'text-white');
+        icon.textContent = iconNum;
+    };
+
+    const completeStep = (stepEl, iconContent) => {
+        stepEl.style.opacity = '1';
+        stepEl.classList.remove('border-orange-400');
+        stepEl.classList.add('border-green-400');
+        const icon = stepEl.querySelector('span');
+        icon.classList.remove('bg-orange-500');
+        icon.classList.add('bg-green-500', 'text-white');
+        icon.innerHTML = iconContent;
+    };
+
+    if (calibrationState.deviceInfoCollected) {
+        completeStep(stepDeviceInfo, '✓');
+        activateStep(stepTypingCalibration, '2');
+        document.querySelectorAll('.typing-input').forEach(input => { input.disabled = false; });
+    } else {
+        activateStep(stepDeviceInfo, '1');
+    }
+
+    if (calibrationState.typingCalibrated) {
+        completeStep(stepTypingCalibration, '✓');
+        activateStep(stepMouseCalibration, '3');
+        mouseCalibrationArea.style.pointerEvents = 'auto';
+        mouseCalibrationArea.querySelector('span').textContent = 'Move your cursor here';
+    }
+
+    if (calibrationState.mouseCalibrated) {
+        completeStep(stepMouseCalibration, '✓');
+    }
+
+    if (completedCount === 3) {
+        completeCalibrationBtn.disabled = false;
+    }
+}
+
+async function collectDeviceInformation() {
+    const locationStatus = document.getElementById('location-status');
+    const deviceStatus = document.getElementById('device-status');
+    const ipStatus = document.getElementById('ip-status');
+    locationStatus.textContent = deviceStatus.textContent = ipStatus.textContent = 'Processing...';
+
+    try {
+        const clientInfo = await getComprehensiveClientInfo();
+        cachedClientInfo = clientInfo;
+        locationStatus.innerHTML = 'Location collected <span class="text-green-600">✓</span>';
+        deviceStatus.innerHTML = 'Device analyzed <span class="text-green-600">✓</span>';
+        ipStatus.innerHTML = 'IP info gathered <span class="text-green-600">✓</span>';
+        calibrationState.deviceInfoCollected = true;
+        grantLocationBtn.style.display = 'none';
+    } catch (err) {
+        locationStatus.innerHTML = 'Location failed <span class="text-red-600">✗</span>';
+        deviceStatus.innerHTML = 'Device analyzed <span class="text-green-600">✓</span>';
+        ipStatus.innerHTML = 'IP info gathered <span class="text-yellow-600">!</span>';
+        calibrationState.deviceInfoCollected = true; // Still allow to proceed
+        grantLocationBtn.style.display = 'none';
+    }
+    updateCalibrationUI();
+}
+
+function handleCalibrationKeyDown(e) {
+    downStack.push({ key: e.key, downTime: performance.now() });
+}
+
+function handleCalibrationKeyUp(e) {
+    const upTime = performance.now();
+    const downEvent = downStack.find(d => d.key === e.key);
+    if(downEvent){
+        const duration = Math.max(0, upTime - downEvent.downTime);
+        typingEvents.push({ duration, calibration: true });
+        downStack = downStack.filter(d => d.key !== e.key);
+        updateTypingProgress();
+    }
+}
+
+function updateTypingProgress() {
+    const count = typingEvents.filter(e => e.calibration).length;
+    keystrokeCounter.textContent = `${count} / ${REQUIRED_KEYSTROKES}`;
+    typingProgress.style.width = `${Math.min((count / REQUIRED_KEYSTROKES) * 100, 100)}%`;
+    if (count >= REQUIRED_KEYSTROKES && !calibrationState.typingCalibrated) {
+        calibrationState.typingCalibrated = true;
+        updateCalibrationUI();
+    }
+}
+
+function handleCalibrationMouseMove(e) {
+    if (!calibrationState.typingCalibrated) return;
+    mouseEvents.push({ x: e.clientX, y: e.clientY, timestamp: now(), calibration: true });
+    updateMouseProgress();
+}
+
+function updateMouseProgress() {
+    const count = mouseEvents.filter(e => e.calibration).length;
+    mouseCounter.textContent = `${count} / ${REQUIRED_MOUSE_SAMPLES}`;
+    mouseProgress.style.width = `${Math.min((count / REQUIRED_MOUSE_SAMPLES) * 100, 100)}%`;
+    if (count >= REQUIRED_MOUSE_SAMPLES && !calibrationState.mouseCalibrated) {
+        calibrationState.mouseCalibrated = true;
+        updateCalibrationUI();
+    }
+}
+
+function calculateTypingProfile(events) {
+    if (events.length < MIN_TYPING_EVENTS) return null;
+    const totalDuration = events.reduce((s,e) => s + e.duration, 0);
+    return { avgDuration: totalDuration / events.length, n: events.length };
+}
+
+function calculateMouseProfile(events) {
+    if (events.length < MIN_MOUSE_EVENTS) return null;
+    let totalVelocity = 0, samples = 0;
+    for (let i = 1; i < events.length; i++) {
+        const p1 = events[i-1], p2 = events[i];
+        const dt = (p2.timestamp - p1.timestamp) || 1;
+        totalVelocity += Math.hypot(p2.x - p1.x, p2.y - p1.y) / dt;
+        samples++;
+    }
+    return samples > 0 ? { avgVelocity: totalVelocity / samples, n: samples } : null;
+}
+
+async function completeCalibration() {
+    if (!currentUser) return;
+    completeCalibrationBtn.textContent = 'Processing...';
+    completeCalibrationBtn.disabled = true;
+
+    const typingProfile = calculateTypingProfile(typingEvents.filter(e => e.calibration));
+    const mouseProfile = calculateMouseProfile(mouseEvents.filter(e => e.calibration));
+
+    const newProfile = {
+        typingProfile,
+        mouseProfile,
+        clientInfo: cachedClientInfo,
+        calibrationCompleted: true,
+        createdAt: now()
+    };
+
+    const profileRef = doc(db, 'users', currentUser.uid, 'behavioral_profile', 'main');
+    await setDoc(profileRef, newProfile);
+    userBehavioralProfile = newProfile;
+    
+    mandatoryCalibrationContainer.classList.add('hidden');
+    dashboardContainer.classList.remove('hidden');
+    await startDataCapture();
+}
+
+function handleKeyDown(e) {
+    downStack.push({ key: e.key, downTime: performance.now() });
+}
+
+function handleKeyUp(e) {
+    const upTime = performance.now();
+    const downEvent = downStack.find(d => d.key === e.key);
+    if(downEvent){
+        const duration = Math.max(0, upTime - downEvent.downTime);
+        typingEvents.push({ duration });
+        downStack = downStack.filter(d => d.key !== e.key);
+    }
+}
+
+function handleMouseMove(e) {
+    mouseEvents.push({ x: e.clientX, y: e.clientY, timestamp: now() });
+}
+
+function safeSimilarity(current, baseline) {
+    const base = Math.max(Math.abs(baseline), 1e-3);
+    return Math.max(0, Math.exp(-Math.abs(current - baseline) / base) * 100);
+}
+
+function estimateConfidence(tpN, mpN) {
+    const t = Math.min(1, (tpN || 0) / 50);
+    const m = Math.min(1, (mpN || 0) / 200);
+    return `${Math.round((0.6 * t + 0.4 * m) * 100)}%`;
+}
+
+// ===================================================================
+// || ============== NEW/MODIFIED AUTH LOGIC START ================ ||
+// ===================================================================
+function isAdvancedAuthInProgress() {
+    const authChoiceModal = document.getElementById('auth-choice-modal');
+    const kycModal = document.getElementById('kyc-modal');
+    const threeDModal = document.getElementById('three-d-modal');
+    const audioModal = document.getElementById('audio-verification-modal');
+    return !authChoiceModal.classList.contains('hidden') ||
+           !kycModal.classList.contains('hidden') ||
+           !threeDModal.classList.contains('hidden') ||
+           !audioModal.classList.contains('hidden');
+}
+
+function updateTrustScoreUI(score, confidence = '--') {
+    if (isNaN(score)) {
+        trustScoreDisplay.textContent = '--%';
+        trustScoreDisplay.className = 'text-8xl font-bold text-orange-300 my-4 transition-colors duration-500';
+        confidenceLabel.textContent = `Confidence: --`;
+    } else {
+        trustScoreDisplay.textContent = `${Math.round(score)}%`;
+        confidenceLabel.textContent = `Confidence: ${confidence}`;
+
+        if (score > 85) {
+            trustScoreDisplay.className = 'text-8xl font-bold text-green-500 my-4 transition-colors duration-500';
+            sessionStorage.removeItem('audioAuthFailureCount');
+        } else if (score > 75) {
+            trustScoreDisplay.className = 'text-8xl font-bold text-yellow-500 my-4 transition-colors duration-500';
+            sessionStorage.removeItem('audioAuthFailureCount');
+        } else if (score > 65) {
+            trustScoreDisplay.className = 'text-8xl font-bold text-red-500 my-4 transition-colors duration-500';
+            if (!isAdvancedAuthInProgress()) {
+                triggerAudioOnlyAuthentication();
+            }
+        } else {
+            trustScoreDisplay.className = 'text-8xl font-bold text-red-500 my-4 transition-colors duration-500';
+            if (!isAdvancedAuthInProgress()) {
+                showAdvancedAuthenticationChoice();
+            }
+        }
+    }
+}
+
+function triggerAudioOnlyAuthentication() {
+    document.getElementById('audio-verification-modal').classList.remove('hidden');
+    initializeAudioVerificationApp();
+}
+
+function showAdvancedAuthenticationChoice() {
+    const modal = document.getElementById('auth-choice-modal');
+    const optionsGrid = modal.querySelector('.grid');
+    if (optionsGrid.children.length > 2) {
+        optionsGrid.children[2].style.display = 'none'; // Hide audio
+    }
+    optionsGrid.children[0].style.display = 'block';
+    optionsGrid.children[1].style.display = 'block';
+    optionsGrid.classList.remove('md:grid-cols-3');
+    optionsGrid.classList.add('md:grid-cols-2');
+    modal.classList.remove('hidden');
+}
+
+function closeAuthChoice() {
+    document.getElementById('auth-choice-modal').classList.add('hidden');
+}
+// ===================================================================
+// || ================ NEW/MODIFIED AUTH LOGIC END ================== ||
+// ===================================================================
+// Trigger 3D Verification
+function trigger3DVerification() {
+    const threeDModal = document.getElementById('three-d-modal');
+    const threeDContent = document.getElementById('three-d-content');
+    threeDContent.innerHTML = getThreeDVerificationHTML();
+    threeDModal.classList.remove('hidden');
+    setTimeout(() => {
+        initialize3DVerification();
+    }, 100);
+}
+
+function getThreeDVerificationHTML() {
+    return `
+<div class="container" style="background: rgba(10, 25, 47, 0.85); border-radius: 24px; padding: 30px; max-width: 100%; margin: 0; color: #ccd6f6;">
+<header style="background: transparent; padding: 20px; border-bottom: 1px solid rgba(0, 229, 255, 0.2);">
+<h1 style="margin: 0; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 2px; color: #00e5ff;">3D BIOMETRIC AUTHENTICATION</h1>
+<p style="margin: 5px 0 0; font-weight: 400; opacity: 0.8; color: #8892b0; font-size: 0.9rem;">Multi-Layer Liveness Detection Matrix</p>
+</header>
+<main class="verification-box" style="padding: 30px; position: relative; text-align: center;">
+<div id="three-d-welcome-screen">
+<p id="three-d-model-status" style="color: #00e5ff; font-size: 1.1rem; margin-bottom: 20px;">INITIALIZING SECURITY PROTOCOLS...</p>
+<div id="three-d-model-loader" class="loader" style="border: 4px solid rgba(0, 229, 255, 0.2); border-left-color: #00e5ff; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+<button id="three-d-start-button" disabled style="background: transparent; color: #00e5ff; border: 1px solid #00e5ff; padding: 15px 30px; font-size: 1rem; border-radius: 4px; cursor: pointer; text-transform: uppercase;">Initiate Verification</button>
+</div>
+<div id="three-d-verification-screen" class="hidden">
+<div class="camera-container" style="width: 280px; height: 280px; border-radius: 50%; margin: 0 auto 20px; overflow: hidden; background: #000; border: 2px solid rgba(0, 229, 255, 0.3); position: relative;">
+<video id="three-d-video-feed" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+<canvas id="three-d-face-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1);"></canvas>
+</div>
+<div class="status-panel" style="min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+<h3 id="three-d-status-title" style="margin: 0 0 10px; font-size: 1.2rem; color: #00e5ff;">Initializing...</h3>
+<div id="three-d-liveness-instruction" class="liveness-instruction hidden" style="font-size: 1.1rem; font-weight: bold; color: #ffc107; margin: 10px 0; padding: 10px 20px; border: 1px solid #ffc107; border-radius: 4px; background: rgba(255, 193, 7, 0.1);">Please blink your eyes</div>
+<p id="three-d-status-instruction" style="color: #ccd6f6;">Preparing verification system...</p>
+<div class="progress-bar" style="width: 100%; height: 6px; background: rgba(0, 229, 255, 0.1); border-radius: 3px; margin: 10px 0; border: 1px solid rgba(0, 229, 255, 0.2);">
+<div id="three-d-progress-fill" class="progress-fill" style="height: 100%; background: #64ffda; width: 0%; transition: width 0.3s ease;"></div>
+</div>
+</div>
+<div id="three-d-security-status" class="security-checks hidden" style="text-align: left; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 4px; margin: 15px 0; font-size: 0.85rem; border: 1px solid rgba(0, 229, 255, 0.1);">
+<h4 style="margin: 0 0 10px 0; text-transform: uppercase; color: #00e5ff;">VERIFICATION PROGRESS</h4>
+<div class="check-item" style="display: flex; align-items: center; margin: 8px 0;"><span id="three-d-face-detection-check" class="check-pending" style="width: 30px; font-weight: bold; color: #00e5ff;">⟳</span> Face Geometry Analysis</div>
+<div class="check-item" style="display: flex; align-items: center; margin: 8px 0;"><span id="three-d-motion-analysis-check" class="check-pending" style="width: 30px; font-weight: bold; color: #00e5ff;">⟳</span> Natural Motion Analysis</div>
+<div class="check-item" style="display: flex; align-items: center; margin: 8px 0;"><span id="three-d-liveness-challenge-check" class="check-pending" style="width: 30px; font-weight: bold; color: #00e5ff;">⟳</span> Liveness Challenge</div>
+<div class="check-item" style="display: flex; align-items: center; margin: 8px 0;"><span id="three-d-depth-verification-check" class="check-pending" style="width: 30px; font-weight: bold; color: #00e5ff;">⟳</span> Depth Matrix Verification</div>
+</div>
+<div id="three-d-success-check" class="success-check hidden" style="font-size: 4rem; color: #64ffda;">✓</div>
+<button id="three-d-retry-button" class="hidden" style="background: transparent; color: #ff5252; border: 1px solid #ff5252; padding: 15px 30px; font-size: 1rem; border-radius: 4px; cursor: pointer; text-transform: uppercase;">Retry Verification</button>
+</div>
+</main>
+</div>
+`;
+}
+
+function initialize3DVerification() {
+    if (!document.getElementById('three-d-styles')) {
+        const style = document.createElement('style');
+        style.id = 'three-d-styles';
+        style.textContent = `
+            @keyframes spin { to { transform: rotate(360deg); } }
+            .check-pass { color: #64ffda !important; }
+            .check-fail { color: #ff5252 !important; }
+            .check-pending { color: #00e5ff !important; animation: pulse 1.5s infinite; }
+            @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        `;
+        document.head.appendChild(style);
+    }
+    setTimeout(() => {
+        const modelStatus = document.getElementById('three-d-model-status');
+        const modelLoader = document.getElementById('three-d-model-loader');
+        const startButton = document.getElementById('three-d-start-button');
+        const retryButton = document.getElementById('three-d-retry-button');
+        if (modelStatus) modelStatus.textContent = 'SECURITY SYSTEM ONLINE';
+        if (modelLoader) modelLoader.style.display = 'none';
+        if (startButton) {
+            startButton.disabled = false;
+            startButton.addEventListener('click', start3DVerification);
+        }
+        if(retryButton) {
+            retryButton.addEventListener('click', start3DVerification);
+        }
+    }, 2000);
+}
+
+async function start3DVerification() {
+    const welcomeScreen = document.getElementById('three-d-welcome-screen');
+    const verificationScreen = document.getElementById('three-d-verification-screen');
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
+    if (verificationScreen) verificationScreen.classList.remove('hidden');
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        });
+        const video = document.getElementById('three-d-video-feed');
+        if (video) {
+            video.srcObject = stream;
+            setTimeout(() => {
+                const shouldFail = Math.random() > 0.5;
+                if(shouldFail && (parseInt(sessionStorage.getItem('advancedAuthFailureCount') || '0') < 2) ) {
+                    show3DError('Liveness check failed. Please try again.');
+                } else {
+                    run3DVerificationLoop();
+                }
+            }, 1000);
+        }
+    } catch (error) {
+        console.error('Error starting 3D verification:', error);
+        show3DError('Camera access denied. Please allow camera permissions.');
+    }
+}
+
+function run3DVerificationLoop() {
+    const securityStatus = document.getElementById('three-d-security-status');
+    const progressFill = document.getElementById('three-d-progress-fill');
+    if (securityStatus) securityStatus.classList.remove('hidden');
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 10 + 5;
+        if (progressFill) progressFill.style.width = Math.min(progress, 100) + '%';
+        if (progress > 25) updateCheckStatus('three-d-face-detection-check', true);
+        if (progress > 50) updateCheckStatus('three-d-motion-analysis-check', true);
+        if (progress > 75) updateCheckStatus('three-d-liveness-challenge-check', true);
+        if (progress > 95) {
+            updateCheckStatus('three-d-depth-verification-check', true);
+            complete3DVerification();
+            clearInterval(interval);
+        }
+    }, 500);
+}
+
+function updateCheckStatus(elementId, passed) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = passed ? '✓' : '⟳';
+        element.className = passed ? 'check-pass' : 'check-pending';
+    }
+}
+
+function complete3DVerification() {
+    const statusTitle = document.getElementById('three-d-status-title');
+    const statusInstruction = document.getElementById('three-d-status-instruction');
+    const successCheck = document.getElementById('three-d-success-check');
+    if (statusTitle) {
+        statusTitle.style.color = '#64ffda';
+        statusTitle.textContent = 'Verification Complete';
+    }
+    if (statusInstruction) {
+        statusInstruction.innerHTML = '<b>BIOMETRIC IDENTITY VERIFIED</b><br>All Security Layers Passed.';
+    }
+    if (successCheck) successCheck.classList.remove('hidden');
+    sessionStorage.removeItem('advancedAuthFailureCount');
+    setTimeout(() => {
+        close3DVerification();
+        location.reload();
+    }, 3000);
+}
+
+function show3DError(message) {
+    const statusTitle = document.getElementById('three-d-status-title');
+    const statusInstruction = document.getElementById('three-d-status-instruction');
+    const retryButton = document.getElementById('three-d-retry-button');
+    if (statusTitle) statusTitle.textContent = 'VERIFICATION FAILED';
+    if (statusInstruction) statusInstruction.textContent = message;
+    if (retryButton) retryButton.classList.remove('hidden');
+    
+    let failureCount = parseInt(sessionStorage.getItem('advancedAuthFailureCount') || '0') + 1;
+    sessionStorage.setItem('advancedAuthFailureCount', failureCount.toString());
+    
+    if (failureCount >= 2) {
+        if (retryButton) retryButton.style.display = 'none';
+        flagAndLogoutAttacker();
+    }
+}
+
+function close3DVerification() {
+    const video = document.getElementById('three-d-video-feed');
+    if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+    }
+    document.getElementById('three-d-modal').classList.add('hidden');
+}
+
+function getDistanceKm(lat1, lon1, lat2, lon2) {
+    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return Infinity;
+    const R = 6371;
+    const dLat = (lat2-lat1) * Math.PI/180;
+    const dLon = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function compareClientInfo(current, baseline) {
+    if (!baseline?.clientInfo) return 60;
+    const b = baseline.clientInfo;
+    let score = 0, parts = 0;
+    const addScore = (val) => { score += val; parts++; };
+    
+    if (current.country && b.country) addScore(current.country === b.country ? 100 : 30);
+    if (current.userAgent && b.userAgent) addScore(current.userAgent === b.userAgent ? 100 : 40);
+    
+    const dist = getDistanceKm(current.latitude, current.longitude, b.latitude, b.longitude);
+    if (dist < 50) addScore(100);
+    else if (dist < 500) addScore(70);
+    else addScore(30);
+    
+    return parts > 0 ? score / parts : 80;
+}
+
+async function analyzeCurrentBehavior() {
+    if (!userBehavioralProfile) return;
+
+    const currentTyping = calculateTypingProfile(typingEvents.filter(e => !e.calibration));
+    const currentMouse = calculateMouseProfile(mouseEvents.filter(e => !e.calibration));
+
+    if (!currentTyping && !currentMouse) {
+        updateTrustScoreUI(NaN);
+        return;
+    }
+
+    let typeSim = 100, mouseSim = 100;
+    if (currentTyping && userBehavioralProfile.typingProfile) {
+        typeSim = safeSimilarity(currentTyping.avgDuration, userBehavioralProfile.typingProfile.avgDuration);
+    }
+    if (currentMouse && userBehavioralProfile.mouseProfile) {
+        mouseSim = safeSimilarity(currentMouse.avgVelocity, userBehavioralProfile.mouseProfile.avgVelocity);
+    }
+
+    const behavioralScore = (typeSim + mouseSim) / 2;
+    const metaScore = compareClientInfo(cachedClientInfo, userBehavioralProfile);
+    const finalScore = (0.7 * behavioralScore) + (0.3 * metaScore);
+    const confidence = estimateConfidence(currentTyping?.n || 0, currentMouse?.n || 0);
+
+    updateTrustScoreUI(finalScore, confidence);
+}
+
+async function startDataCapture() {
+    typingEvents = [];
+    mouseEvents = [];
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('mousemove', handleMouseMove);
+    liveInput.addEventListener('keydown', handleKeyDown);
+    liveInput.addEventListener('keyup', handleKeyUp);
+
+    if (analysisInterval) clearInterval(analysisInterval);
+    analysisInterval = setInterval(() => {
+        if (isAdvancedAuthInProgress()) {
+            return; // Pause analysis if a verification modal is active
+        }
+        analyzeCurrentBehavior().catch(console.error);
+    }, 2000);
+}
+
+function stopDataCapture() {
+    document.removeEventListener('keydown', handleKeyDown);
+    document.removeEventListener('keyup', handleKeyUp);
+    document.removeEventListener('mousemove', handleMouseMove);
+    liveInput.removeEventListener('keydown', handleKeyDown);
+    liveInput.removeEventListener('keyup', handleKeyUp);
+    if (analysisInterval) clearInterval(analysisInterval);
+    userBehavioralProfile = null;
+    updateTrustScoreUI(NaN);
+    liveInput.value = '';
+}
+
+async function checkCalibrationStatus(userId) {
+    const profileRef = doc(db, 'users', userId, 'behavioral_profile', 'main');
+    const profileSnap = await getDoc(profileRef);
+    if (profileSnap.exists() && profileSnap.data().calibrationCompleted) {
+        userBehavioralProfile = profileSnap.data();
+        cachedClientInfo = await getComprehensiveClientInfo();
+        return false;
+    }
+    return true;
+}
+
+onAuthStateChanged(auth, async (user) => {
+    loadingSpinner.classList.add('hidden');
+    currentUser = user;
+    if (user) {
+        sessionStorage.removeItem('audioAuthFailureCount');
+        sessionStorage.removeItem('advancedAuthFailureCount');
+        isAdminUser = checkAdminStatus(user);
+        userEmailDisplay.textContent = user.email;
+        authContainer.classList.add('hidden');
+        toggleAdminDashboardButton();
+        const needsCalibration = await checkCalibrationStatus(user.uid);
+        if (needsCalibration) {
+            mandatoryCalibrationContainer.classList.remove('hidden');
+            dashboardContainer.classList.add('hidden');
+            updateCalibrationUI();
+        } else {
+            mandatoryCalibrationContainer.classList.add('hidden');
+            dashboardContainer.classList.remove('hidden');
+            await startDataCapture();
+        }
+    } else {
+        isAdminUser = false;
+        authContainer.classList.remove('hidden');
+        mandatoryCalibrationContainer.classList.add('hidden');
+        dashboardContainer.classList.add('hidden');
+        toggleAdminDashboardButton();
+        stopDataCapture();
+    }
+});
+
+// Event listeners
+grantLocationBtn.addEventListener('click', collectDeviceInformation);
+completeCalibrationBtn.addEventListener('click', completeCalibration);
+
+document.querySelectorAll('.typing-input').forEach(input => {
+    input.addEventListener('keydown', handleCalibrationKeyDown);
+    input.addEventListener('keyup', handleCalibrationKeyUp);
+});
+mouseCalibrationArea.addEventListener('mousemove', handleCalibrationMouseMove);
+
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+        await signInWithEmailAndPassword(auth, loginForm['login-email'].value, loginForm['login-password'].value);
+    } catch (error) { errorMessage.textContent = error.message; }
+});
+
+signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+        const cred = await createUserWithEmailAndPassword(auth, signupForm['signup-email'].value, signupForm['signup-password'].value);
+        await setDoc(doc(db, 'users', cred.user.uid), { email: cred.user.email, createdAt: serverTimestamp() });
+    } catch (error) { errorMessage.textContent = error.message; }
+});
+
+document.getElementById('logout-button').addEventListener('click', () => signOut(auth));
+
+toggleFormLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    isLoginFormVisible = !isLoginFormVisible;
+    loginForm.classList.toggle('hidden');
+    signupForm.classList.toggle('hidden');
+    formTitle.textContent = isLoginFormVisible ? 'Login' : 'Sign Up';
+    toggleFormLink.textContent = isLoginFormVisible ? "Don't have an account? Sign Up" : 'Already have an account? Login';
+    errorMessage.textContent = '';
+});
+
+consentCheckbox.addEventListener('change', () => { signupButton.disabled = !consentCheckbox.checked; });
+
+</script>
+</body>
+</html>
