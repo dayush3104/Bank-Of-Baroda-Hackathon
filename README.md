@@ -1,11 +1,11 @@
-# Kavach X: A Multi-Layered Identity Security Platform
+# VigilX X: A Multi-Layered Identity Security Platform
 
 ![Bank of Baroda](https://img.shields.io/badge/Bank%20of%20Baroda-Security%20Platform-orange)
 ![Python](https://img.shields.io/badge/Python-3.8+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-WebSocket-green)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow)
 
-Kavach X is a comprehensive web-based prototype designed to showcase a next-generation, multi-layered security framework for the banking industry. It addresses critical vulnerabilities in modern digital identity verification, including deepfake threats and session hijacking, by implementing a Zero Trust philosophy through several innovative features.
+VigilX is a comprehensive web-based prototype designed to showcase a next-generation, multi-layered security framework for the banking industry. It addresses critical vulnerabilities in modern digital identity verification, including deepfake threats and session hijacking, by implementing a Zero Trust philosophy through several innovative features.
 
 This repository contains the frontend code for three distinct verification modules and a unified admin monitoring dashboard.
 
