@@ -1,4 +1,4 @@
-# VigilX X: A Multi-Layered Identity Security Platform
+# VigilX: A Multi-Layered Identity Security Platform
 
 ![Bank of Baroda](https://img.shields.io/badge/Bank%20of%20Baroda-Security%20Platform-orange)
 ![Python](https://img.shields.io/badge/Python-3.8+-blue)
